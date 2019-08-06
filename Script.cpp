@@ -236,11 +236,24 @@ static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector
     if( values.size() < 2 || values[0].empty() || values[1].empty() )
         return false;
 
-    unsigned int idx = -1;
+    unsigned int idx;
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
     return code.Arguments[idx] == values[1];
+}
+
+// ? IfArgumentNotValue:INDEX,STRING
+static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+        return false;
+
+    unsigned int idx;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
+        return false;
+
+    return code.Arguments[idx] != values[1];
 }
 
 // ? IfEdited
@@ -305,7 +318,7 @@ static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std
 // ? IfOperatorName:STRING
 static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if(  values.size() < 1 || values[0].empty() || !code.Operator.length() )
+    if(  values.size() < 1 || values[0].empty() || code.Operator.empty() )
         return false;
 
     return code.Parent->GetOperatorName( code.Operator ) == values[0];
@@ -314,7 +327,7 @@ static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector
 // ? IfOperatorValue:STRING
 static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 1 || values[0].empty() || !code.OperatorArgument.length() )
+    if( values.size() < 1 || values[0].empty() || code.OperatorArgument.empty() )
         return false;
 
     return code.OperatorArgument == values[0];
@@ -364,7 +377,7 @@ static bool DoArgumentsClear(  ReDefine::ScriptCode& code, const std::vector<std
 // ? DoArgumentsErase:INDEX
 static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( !values.size() )
+    if( values.empty() )
         return false;
 
     unsigned int idx;
@@ -427,7 +440,7 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
 // ? DoArgumentsPushBack:STRING,TYPE
 static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !values.size() || values[0].empty() )
+    if( values.empty() || values[0].empty() )
         return false;
 
     std::string type = values.size() >= 2 ? values[1] : "?";
@@ -444,7 +457,7 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
 // ? DoArgumentsPushFront:STRING,TYPE
 static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( !values.size() || values[0].empty() )
+    if( values.empty() || values[0].empty() )
         return false;
 
     std::string type = values.size() >= 2 ? values[1] : "?";
@@ -461,7 +474,7 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
 // > DoArgumentsClear
 static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if(  !values.size() || values[0].empty() )
+    if( values.empty() || values[0].empty() )
         return false;
 
     unsigned int size;
@@ -498,7 +511,7 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
     ReDefine::SStatus::SCurrent previous = code.Parent->Status.Current;
     code.Parent->Status.Current.Line.clear();
 
-    if( values.size() && values[0].length() )
+    if( !values.empty() && !values[0].empty() )
     {
 
         if( values[0] == "DEBUG" )
@@ -529,7 +542,7 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoNameSet:STRING
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !values.empty() && !values[0].empty() )
+    if( values.empty() || values[0].empty() )
         return false;
 
     code.Name = values[0];
@@ -571,6 +584,7 @@ void ReDefine::InitScript()
 {
     // must start with "If"
     EditIf["IfArgumentIs"] = &IfArgumentIs;
+    EditIf["IfArgumentNotValue"] = &IfArgumentNotValue;
     EditIf["IfArgumentValue"] = &IfArgumentValue;
     EditIf["IfEdited"] = &IfEdited;
     EditIf["IfFileDefined"] = &IfFileDefined;

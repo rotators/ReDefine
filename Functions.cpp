@@ -138,9 +138,12 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
             WARNING( __FUNCTION__, "argument<%u> type not set", idx );
             continue;
         }
-        else if( function.ArgumentsTypes[idx] == "?" ) // skip other mystery types
+        else if( IsMysteryDefineType( function.ArgumentsTypes[idx] ) )
         {
-            ProcessValueGuessing( function.Arguments[idx] );
+            // only "?" type should be guessed
+            if( function.ArgumentsTypes[idx] == "?" )
+                ProcessValueGuessing( function.Arguments[idx] );
+
             continue;
         }
 
