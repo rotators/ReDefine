@@ -106,6 +106,12 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
 {
     lines.clear();
 
+    if( !std_filesystem::exists( filename ) )
+    {
+        WARNING( nullptr, "cannot find file<%s>", filename.c_str() );
+        return false;
+    }
+
     // don't waste time on empty files
     // also, while( !std::ifstream::eof() ) goes wild on empty files
     if( std_filesystem::file_size( filename ) == 0 )
