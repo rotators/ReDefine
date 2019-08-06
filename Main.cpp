@@ -73,7 +73,7 @@ int main( int argc, char** argv )
         else if( redefine->ReadConfig( "Defines", "Variable", "Function", "Raw", "Script" ) )
         {
             // unload config
-            // added here to make sure Process*() functions are independent o ReadConfig*()
+            // added here to make sure Process*() functions are independent of ReadConfig*()
             // in long-running applications it might be a good idea to keep config alive
             redefine->Config->Unload();
 
@@ -102,6 +102,7 @@ int main( int argc, char** argv )
         result = EXIT_FAILURE;
     }
 
+    // show summary, if available
     if( redefine->Status.Process.Lines && redefine->Status.Process.Files )
     {
         redefine->LOG( "Process scripts ... %u line%s in %u file%s",
@@ -109,6 +110,7 @@ int main( int argc, char** argv )
                        redefine->Status.Process.Files, redefine->Status.Process.Files != 1 ? "s" : "" );
     }
 
+    // show changes summary, if available
     if( redefine->Status.Process.LinesChanges && redefine->Status.Process.FilesChanges )
     {
         redefine->LOG( "%sed scripts ... %u line%s in %u file%s%s",
@@ -118,6 +120,7 @@ int main( int argc, char** argv )
                        readOnly ? " can be changed" : "" );
     }
 
+    // cleanup
     if( redefine->Status.Process.Unknown.size() )
     {
         redefine->WARNING( nullptr, " " );
@@ -135,5 +138,6 @@ int main( int argc, char** argv )
     delete redefine;
     delete cmd;
 
+    // go back to making Fallout mods
     return result;
 }
