@@ -4,10 +4,7 @@
 
 #include "ReDefine.h"
 
-ReDefine::ScriptCode::ScriptCode() : ScriptCode( nullptr )
-{}
-
-ReDefine::ScriptCode::ScriptCode( ReDefine* parent ) :
+ReDefine::ScriptCode::ScriptCode( ReDefine* parent /* = nullptr */ ) :
     Parent( parent ),
     File( nullptr ),
     Flags( 0 ),
@@ -945,6 +942,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
     Status.Current.Clear();
     delete file;
 
+    // update changes counter
     if( updateFile )
     {
         Status.Process.FilesChanges++;
@@ -968,6 +966,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         {
             WARNING( __FUNCTION__, "cannot write file<%s>", TextGetFilename( path, filename ) );
 
+            // revert changes counter
             Status.Process.FilesChanges--;
             Status.Process.LinesChanges -= changes;
         }
@@ -1015,7 +1014,7 @@ void ReDefine::ProcessScriptEdit( const std::vector<ReDefine::ScriptEdit>& edits
         // you are Result, you must Do
         for( const ScriptEdit::Action& result : edit.Results )
         {
-            std::string before, after, log;
+            std::string log;
 
             if( editDebug )
             {

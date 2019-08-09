@@ -55,7 +55,8 @@ void ReDefine::SStatus::Clear()
 //
 
 ReDefine::ReDefine() :
-    Config( nullptr )
+    Config( nullptr ),
+    EditDebug( false )
 {}
 
 ReDefine::~ReDefine()
@@ -106,19 +107,20 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
 {
     lines.clear();
 
-    if( !std_filesystem::exists( filename ) )
+    const std::string file = TextGetReplaced( filename, "\\", "/" );
+    if( !std_filesystem::exists( file ) )
     {
-        WARNING( nullptr, "cannot find file<%s>", filename.c_str() );
+        WARNING( nullptr, "cannot find file<%s>", file.c_str() );
         return false;
     }
 
     // don't waste time on empty files
     // also, while( !std::ifstream::eof() ) goes wild on empty files
-    if( std_filesystem::file_size( filename ) == 0 )
+    if( std_filesystem::file_size( file ) == 0 )
         return true;
 
     std::ifstream fstream;
-    fstream.open( filename, std::ios_base::in | std::ios_base::binary );
+    fstream.open( file, std::ios_base::in | std::ios_base::binary );
 
     bool result = fstream.is_open();
     if( result )
@@ -141,7 +143,46 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
         }
     }
     else
-        WARNING( nullptr, "cannot read file<%s>", filename.c_str() );
+        WARNING( nullptr, "cannot read file<%s>", file.c_str() );
+
+    return result;
+}
+
+bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& letters )
+{
+    letters.clear();
+
+    const std::string file = TextGetReplaced( filename, "\\", "/" );
+    if( !std_filesystem::exists( file ) )
+    {
+        WARNING( nullptr, "cannot find file<%s>", file.c_str() );
+        return false;
+    }
+
+    // don't waste time on empty files
+    std::size_t size = std_filesystem::file_size( file );
+    if( size == 0 )
+        return true;
+
+    std::ifstream fstream;
+    fstream.open( file, std::ios_base::in | std::ios_base::binary );
+
+    bool result = fstream.is_open();
+    if( result )
+    {
+        // skip bom
+        char bom[3] = { 0, 0, 0 };
+        fstream.read( bom, sizeof(bom) );
+        if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
+            fstream.seekg( 0, fstream.beg );
+        else
+            size -= 3;
+
+        letters.resize( size );
+        fstream.read( &letters[0], size );
+    }
+    else
+        WARNING( nullptr, "cannot read file<%s>", file.c_str() );
 
     return result;
 }

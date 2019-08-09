@@ -83,6 +83,7 @@ public:
     void Finish();
 
     bool ReadFile( const std::string& filename, std::vector<std::string>& lines );
+    bool ReadFile( const std::string& filename, std::vector<char>& letters );
     bool ReadConfig( const std::string& defines, const std::string& variable_prefix, const std::string& function_prefix, const std::string& raw, const std::string& script );
 
     void ProcessHeaders( const std::string& path );
@@ -203,8 +204,7 @@ public:
         std::string              Operator;
         std::string              OperatorArgument;
 
-        ScriptCode();
-        ScriptCode( ReDefine* parent );
+        ScriptCode( ReDefine* parent = nullptr );
 
         bool IsFlag( unsigned int flag ) const;
         void SetFlag( unsigned int flag );
