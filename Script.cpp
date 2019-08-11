@@ -406,6 +406,40 @@ static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::s
     return true;
 }
 
+// ? DoArgumentSetPrefix
+// > DoArgumentSet
+static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+        return false;
+
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    unsigned int idx;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
+        return false;
+
+    return code.CallEditDo( "DoArgumentSet", { values[0], values[1] + code.Arguments[idx] } );
+}
+
+// ? DoArgumentSetSuffix
+// > DoArgumentSet
+static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+        return false;
+
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    unsigned int idx;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
+        return false;
+
+    return code.CallEditDo( "DoArgumentSet", { values[0], code.Arguments[idx] + values[1] } );
+}
+
 // ? DoArgumentSetType:INDEX,TYPE
 static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -587,6 +621,7 @@ static bool DoFunction(  ReDefine::ScriptCode& code, const std::vector<std::stri
     return true;
 }
 
+// ? DoLogCurrentLine
 static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     ReDefine::SStatus::SCurrent previous = code.Parent->Status.Current;
@@ -692,6 +727,8 @@ void ReDefine::InitScript()
     // must start with "Do"
     EditDo["DoArgumentCount"] = &DoArgumentCount;
     EditDo["DoArgumentSet"] = &DoArgumentSet;
+    EditDo["DoArgumentSetPrefix"] = &DoArgumentSetPrefix;
+    EditDo["DoArgumentSetSuffix"] = &DoArgumentSetSuffix;
     EditDo["DoArgumentSetType"] = &DoArgumentSetType;
     EditDo["DoArgumentsClear"] = &DoArgumentsClear;
     EditDo["DoArgumentsErase"] = &DoArgumentsErase;
