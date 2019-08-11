@@ -120,18 +120,34 @@ int main( int argc, char** argv )
                        readOnly ? " can be changed" : "" );
     }
 
-    // cleanup
-    if( redefine->Status.Process.Unknown.size() )
+    // show counters
+    if( redefine->Status.Process.Counters.size() )
     {
-        redefine->WARNING( nullptr, " " );
-        for( const auto& type : redefine->Status.Process.Unknown )
+        for( const auto& counter : redefine->Status.Process.Counters )
         {
-            redefine->WARNING( nullptr, "Unknown %s", type.first.c_str() );
-            for( const auto& value : type.second )
+            // counters set by ReDefine when processing scripts
+            bool internal = counter.first.front() == '!' && counter.first.back() == '!';
+            if( internal )
             {
-                redefine->WARNING( nullptr, "        %s (%u hit%s)", value.first.c_str(), value.second, value.second != 1 ? "s" : "" );
+                redefine->WARNING( nullptr, " " );
+                redefine->WARNING( nullptr, "%s", counter.first.substr( 1, counter.first.length() - 2 ).c_str() );
+            }
+            // counters set by script edit actions (DoNameCount, DoArgumentCount)
+            else
+            {
+                redefine->LOG( " " );
+                redefine->LOG( "Counter %s", counter.first.c_str() );
+            }
+
+            for( const auto& value : counter.second )
+            {
+                if( internal )
+                    redefine->WARNING( nullptr, "        %s (%u hit%s)", value.first.c_str(), value.second, value.second != 1 ? "s" : "" );
+                else
+                    redefine->LOG( "        %s (%u hit%s)", value.first.c_str(), value.second, value.second != 1 ? "s" : "" );
             }
         }
+
     }
 
     // cleanup

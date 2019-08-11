@@ -23,7 +23,7 @@ public:
     typedef std::map<std::string, std::map<int, std::string>>          DefinesMap;
     typedef std::map<std::string, std::map<std::string, std::string>>  GenericOperatorsMap;
     typedef std::map<std::string, std::vector<std::string>>            StringVectorMap;
-    typedef std::map<std::string, std::map<std::string, unsigned int>> UnknownMap;
+    typedef std::map<std::string, std::map<std::string, unsigned int>> CountersMap;
 
     //
     // script edit actions
@@ -64,7 +64,7 @@ public:
             unsigned int FilesChanges;
             unsigned int LinesChanges;
 
-            UnknownMap   Unknown; // <type, <value,count>>
+            CountersMap  Counters;  // <name, <value, count>>
 
             SProcess();
 

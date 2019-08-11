@@ -42,6 +42,7 @@ ReDefine::SStatus::SProcess::SProcess()
 void ReDefine::SStatus::SProcess::Clear()
 {
     Files = FilesChanges = Lines = LinesChanges = 0;
+    Counters.clear();
 }
 
 //

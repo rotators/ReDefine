@@ -328,7 +328,7 @@ bool ReDefine::ProcessValue( const std::string& type, std::string& value, const 
         std::string unknown = useVal ? std::to_string( (long long)val ) : value;
 
         WARNING( nullptr, "unknown %s<%s>", type.c_str(), unknown.c_str() );
-        Status.Process.Unknown[type][unknown]++;
+        Status.Process.Counters["!Unknown " + type + "!"][unknown]++;
     }
 
     return false;

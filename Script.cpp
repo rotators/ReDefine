@@ -370,6 +370,24 @@ static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std
 
 // script edit results
 
+// ? DoArgumentCount:INDEX,STRING
+static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+        return false;
+
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    unsigned int idx;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
+        return false;
+
+    code.Parent->Status.Process.Counters[values[1]][code.Arguments[idx]]++;
+
+    return true;
+}
+
 // ? DoArgumentSet:INDEX,STRING
 static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -602,6 +620,17 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
     return true;
 }
 
+// ? DoNameCount:STRING
+static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( values.empty() || values[0].empty() )
+        return false;
+
+    code.Parent->Status.Process.Counters[values[0]][code.Name]++;
+
+    return true;
+}
+
 // ? DoNameSet:STRING
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -661,6 +690,7 @@ void ReDefine::InitScript()
     EditIf["IfVariable"] = &IfVariable;
 
     // must start with "Do"
+    EditDo["DoArgumentCount"] = &DoArgumentCount;
     EditDo["DoArgumentSet"] = &DoArgumentSet;
     EditDo["DoArgumentSetType"] = &DoArgumentSetType;
     EditDo["DoArgumentsClear"] = &DoArgumentsClear;
@@ -672,6 +702,7 @@ void ReDefine::InitScript()
     EditDo["DoArgumentsResize"] = &DoArgumentsResize;
     EditDo["DoFunction"] = &DoFunction;
     EditDo["DoLogCurrentLine"] = &DoLogCurrentLine;
+    EditDo["DoNameCount"] = &DoNameCount;
     EditDo["DoNameSet"] = &DoNameSet;
     EditDo["DoOperatorClear"] = &DoOperatorClear;
     EditDo["DoVariable"] = &DoVariable;
