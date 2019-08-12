@@ -113,8 +113,8 @@ int main( int argc, char** argv )
     // show changes summary, if available
     if( redefine->Status.Process.LinesChanges && redefine->Status.Process.FilesChanges )
     {
-        redefine->LOG( "%sed scripts ... %u line%s in %u file%s%s",
-                       readOnly ? "Check" : "Chang",
+        redefine->LOG( "Ch%sed scripts ... %u line%s in %u file%s%s",
+                       readOnly ? "eck" : "ang",
                        redefine->Status.Process.LinesChanges, redefine->Status.Process.LinesChanges != 1 ? "s" : "",
                        redefine->Status.Process.FilesChanges, redefine->Status.Process.FilesChanges != 1 ? "s" : "",
                        readOnly ? " can be changed" : "" );
@@ -130,13 +130,13 @@ int main( int argc, char** argv )
             if( internal )
             {
                 redefine->WARNING( nullptr, " " );
-                redefine->WARNING( nullptr, "%s", counter.first.substr( 1, counter.first.length() - 2 ).c_str() );
+                redefine->WARNING( nullptr, "%s (%u)", counter.first.substr( 1, counter.first.length() - 2 ).c_str(), counter.second.size() );
             }
             // counters set by script edit actions (DoNameCount, DoArgumentCount)
             else
             {
                 redefine->LOG( " " );
-                redefine->LOG( "Counter %s", counter.first.c_str() );
+                redefine->LOG( "Counter %s (%u)", counter.first.c_str(), counter.second.size() );
             }
 
             for( const auto& value : counter.second )
@@ -147,7 +147,6 @@ int main( int argc, char** argv )
                     redefine->LOG( "        %s (%u hit%s)", value.first.c_str(), value.second, value.second != 1 ? "s" : "" );
             }
         }
-
     }
 
     // cleanup

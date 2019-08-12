@@ -73,6 +73,30 @@ bool ReDefine::ScriptCode::IsFunctionKnown( const char* caller ) const
     return true;
 }
 
+bool ReDefine::ScriptCode::IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const
+{
+    if( values.size() < count )
+    {
+        if( caller )
+            Parent->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", count, values.size() );
+
+        return false;
+    }
+
+    for( unsigned int c = 0; c < count; c++ )
+    {
+        if( values[c].empty() )
+        {
+            if( caller )
+                Parent->WARNING( caller, "wrong number of arguments : argument<%u> is empty", c + 1 );
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
 //
 
 bool ReDefine::ScriptCode::GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const
@@ -193,7 +217,7 @@ ReDefine::ScriptEdit::ScriptEdit() :
 // ? IfArgumentIs:INDEX,DEFINE,TYPE
 static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunctionKnown( __FUNCTION__ ) )
@@ -208,7 +232,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
         int         val = -1;
         std::string type = code.ArgumentsTypes[idx], value;
 
-        if( values.size() >= 3 )
+        if( code.IsValues( nullptr, values, 3 ) )
         {
             if( !code.GetTYPE( __FUNCTION__, values[2] ) )
                 type = values[2];
@@ -230,7 +254,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
 // ? IfArgumentValue:INDEX,STRING
 static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -246,7 +270,7 @@ static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector
 // ? IfArgumentNotValue:INDEX,STRING
 static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -268,7 +292,7 @@ static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::s
 // ? IfFileDefined:STRING
 static bool IfFileDefined( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 1 || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     return std::find( code.File->Defines.begin(), code.File->Defines.end(), values[0] ) != code.File->Defines.end();
@@ -277,7 +301,7 @@ static bool IfFileDefined( const ReDefine::ScriptCode& code, const std::vector<s
 // ? IfFileName:STRING
 static bool IfFileName( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 1 || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     return code.Parent->Status.Current.File == values[0];
@@ -292,10 +316,13 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
     if( !code.IsFunction( nullptr ) )
         return false;
 
-    if( values.size() )
+    if( code.IsValues( nullptr, values, 1 ) )
     {
         for( const auto& value : values )
         {
+            if( value.empty() )
+                break;
+
             if( code.CallEditIf( "IfName", { value } ) )
                 return true;
         }
@@ -309,7 +336,7 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
 // ? IfName:STRING
 static bool IfName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 1 || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     return code.Name == values[0];
@@ -330,7 +357,10 @@ static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std
 // ? IfOperatorName:STRING
 static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if(  values.size() < 1 || values[0].empty() || code.Operator.empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    if( code.Operator.empty() )
         return false;
 
     return code.Parent->GetOperatorName( code.Operator ) == values[0];
@@ -339,7 +369,10 @@ static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector
 // ? IfOperatorValue:STRING
 static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 1 || values[0].empty() || code.OperatorArgument.empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    if( code.OperatorArgument.empty() )
         return false;
 
     return code.OperatorArgument == values[0];
@@ -354,7 +387,7 @@ static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std
     if( code.IsFunction( nullptr ) )
         return false;
 
-    if( values.size() )
+    if( code.IsValues( nullptr, values, 1 ) )
     {
         for( const auto& value : values )
         {
@@ -373,7 +406,7 @@ static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std
 // ? DoArgumentCount:INDEX,STRING
 static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -391,7 +424,7 @@ static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoArgumentSet:INDEX,STRING
 static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -406,11 +439,11 @@ static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::s
     return true;
 }
 
-// ? DoArgumentSetPrefix
+// ? DoArgumentSetPrefix:INDEX,STRING
 // > DoArgumentSet
 static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -423,11 +456,11 @@ static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<
     return code.CallEditDo( "DoArgumentSet", { values[0], values[1] + code.Arguments[idx] } );
 }
 
-// ? DoArgumentSetSuffix
+// ? DoArgumentSetSuffix:INDEX,STRING
 // > DoArgumentSet
 static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -443,7 +476,7 @@ static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<
 // ? DoArgumentSetType:INDEX,TYPE
 static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if(  values.size() < 2 || values[0].empty() || values[1].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -455,6 +488,73 @@ static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<st
 
 
     code.ArgumentsTypes[idx] = values[1];
+
+    return true;
+}
+
+// ? DoArgumentLookup:INDEX
+// ? DoArgumentLookup:INDEX,STRING
+static bool DoArgumentLookup(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    unsigned int idx;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
+        return false;
+
+    bool        unknown = false;
+    std::string counter;
+
+    if( code.IsValues( nullptr, values, 2 ) )
+    {
+        if( values[1] == "!UNKNOWN!" )
+            unknown = true;
+        else
+            counter = values[1];
+    }
+
+    if( code.Parent->TextIsInt( code.Arguments[idx] ) )
+    {
+        int         val = -1;
+        std::string value;
+
+        if( !code.Parent->TextGetInt( code.Arguments[idx], val ) )
+        {
+            code.Parent->WARNING( __FUNCTION__, "cannot convert string<%s> into integer", code.Arguments[idx].c_str() );
+            return true;
+        }
+
+        if( !code.Parent->GetDefineName( code.Arguments[idx], val, value ) )
+        {
+            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.ArgumentsTypes[idx].c_str(), code.Arguments[idx].c_str() );
+
+            if( unknown )
+                code.Parent->Status.Process.Counters["!Unknown " + code.ArgumentsTypes[idx] + "!"][code.Arguments[idx]]++;
+            else if( !counter.empty() )
+                code.Parent->Status.Process.Counters[counter][code.Arguments[idx]]++;
+
+            return true;
+        }
+    }
+    else
+    {
+        int val = -1;
+        if( !code.Parent->GetDefineValue( code.ArgumentsTypes[idx], code.Arguments[idx], val ) )
+        {
+            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.ArgumentsTypes[idx].c_str(), code.Arguments[idx].c_str() );
+
+            if( unknown )
+                code.Parent->Status.Process.Counters["!Unknown " + code.ArgumentsTypes[idx] + "!"][code.Arguments[idx]]++;
+            else if( !counter.empty() )
+                code.Parent->Status.Process.Counters[counter][code.Arguments[idx]]++;
+
+            return true;
+        }
+    }
 
     return true;
 }
@@ -474,7 +574,7 @@ static bool DoArgumentsClear(  ReDefine::ScriptCode& code, const std::vector<std
 // ? DoArgumentsErase:INDEX
 static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( values.empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -495,7 +595,7 @@ static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std
 // > DoArgumentsPushBack
 static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -521,7 +621,7 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
 // > DoArgumentsPushFront
 static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -546,13 +646,17 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
 // ? DoArgumentsPushBack:STRING,TYPE
 static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.empty() || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    std::string type = values.size() >= 2 ? values[1] : "?";
+    std::string type = "?";
+
+    if( code.IsValues( nullptr, values, 2 ) )
+        type = values[1];
+
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
@@ -566,13 +670,17 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
 // ? DoArgumentsPushFront:STRING,TYPE
 static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( values.empty() || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    std::string type = values.size() >= 2 ? values[1] : "?";
+    std::string type = "?";
+
+    if( code.IsValues( nullptr, values, 2 ) )
+        type = values[1];
+
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
@@ -586,7 +694,7 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
 // > DoArgumentsClear
 static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( values.empty() || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -612,7 +720,7 @@ static bool DoFunction(  ReDefine::ScriptCode& code, const std::vector<std::stri
 {
     code.SetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
 
-    if( values.size() )
+    if( code.IsValues( nullptr, values, 1 ) )
     {
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
@@ -658,7 +766,7 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoNameCount:STRING
 static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.empty() || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     code.Parent->Status.Process.Counters[values[0]][code.Name]++;
@@ -669,7 +777,7 @@ static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::stri
 // ? DoNameSet:STRING
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( values.empty() || values[0].empty() )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     code.Name = values[0];
@@ -691,12 +799,12 @@ static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::
 // > DoNameSet
 static bool DoVariable(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    code.UnsetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
-
     if( !code.CallEditDo( "DoArgumentsClear" ) )
         return false;
 
-    if( !values.empty() )
+    code.UnsetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
+
+    if( code.IsValues( nullptr, values, 1 ) )
     {
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
@@ -726,6 +834,7 @@ void ReDefine::InitScript()
 
     // must start with "Do"
     EditDo["DoArgumentCount"] = &DoArgumentCount;
+    EditDo["DoArgumentLookup"] = &DoArgumentLookup;
     EditDo["DoArgumentSet"] = &DoArgumentSet;
     EditDo["DoArgumentSetPrefix"] = &DoArgumentSetPrefix;
     EditDo["DoArgumentSetSuffix"] = &DoArgumentSetSuffix;

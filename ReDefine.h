@@ -120,6 +120,7 @@ public:
     bool IsRegularDefineType( const std::string& type );
     bool IsMysteryDefineType( const std::string& type );
     bool GetDefineName( const std::string& type, const int value, std::string& result, const bool skipVirtual = false );
+    bool GetDefineValue( const std::string& type, const std::string& value, int& result, const bool skipVirtual = false );
 
     bool ProcessHeader( const std::string& path, const Header& header );
     bool ProcessValue( const std::string& type, std::string& value, const bool silent = false );
@@ -212,6 +213,7 @@ public:
 
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
+        bool IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const;
 
         bool GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const;
         bool GetTYPE( const char* caller, const std::string& value, bool allowUnknown = false ) const;

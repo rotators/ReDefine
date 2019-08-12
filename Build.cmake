@@ -75,15 +75,15 @@ function( FormatSource filename )
 
 	set( root "." )
 	set( uncrustemp "${root}/FormatSource.tmp" )
-	set( uncrustify "${root}/SourceTools/uncrustify" )
-	set( uncrustcfg "${root}/SourceTools/uncrustify.cfg" )
+	set( uncrustify "${root}/Misc/SourceTools/uncrustify" )
+	set( uncrustcfg "${root}/Misc/SourceTools/uncrustify.cfg" )
 
 	if( UNCRUSTIFY_EXECUTABLE )
 		set( uncrustify "${UNCRUSTIFY_EXECUTABLE}" )
 	endif()
 
 	# CMAKE_EXECUTABLE_SUFFIX is not reliable
-	if( WIN32 AND NOT "${uncrustify}" MATCHES "\.[Ee][Xx][Ee]" )
+	if( WIN32 AND NOT "${uncrustify}" MATCHES "\.[Ee][Xx][Ee]$" )
 		string( APPEND uncrustify ".exe" )
 	endif()
 

@@ -175,6 +175,53 @@ bool ReDefine::GetDefineName( const std::string& type, const int value, std::str
     return false;
 }
 
+bool ReDefine::GetDefineValue( const std::string& type, const std::string& value, int& result, const bool skipVirtual /* = false */ )
+{
+    // if define is virtual, check regular and custom defines
+    if( !skipVirtual )
+    {
+        auto itVirtual = VirtualDefines.find( type );
+        if( itVirtual != VirtualDefines.end() )
+        {
+            for( const auto& realType : itVirtual->second )
+            {
+                if( GetDefineValue( realType, value, result, true ) )
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    auto itRegular = RegularDefines.find( type );
+    if( itRegular != RegularDefines.end() )
+    {
+        for( const auto& itVal : itRegular->second )
+        {
+            if( itVal.second == value )
+            {
+                result = itVal.first;
+                return true;
+            }
+        }
+    }
+
+    auto itProg = ProgramDefines.find( type );
+    if( itProg != ProgramDefines.end() )
+    {
+        for( const auto& itVal : itProg->second )
+        {
+            if( itVal.second == value )
+            {
+                result = itVal.first;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 // processing
 
 bool ReDefine::ProcessHeader( const std::string& path, const ReDefine::Header& header )
