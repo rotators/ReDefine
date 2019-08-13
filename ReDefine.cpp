@@ -334,14 +334,20 @@ void ReDefine::ProcessHeaders( const std::string& path )
 
     // log script editing
 
-    for( const ScriptEdit& before : EditBefore )
+    for( const auto& it : EditBefore )
     {
-        LOG( "Added preprocess action ... %s", before.Name.c_str() );
+        for( const ScriptEdit& before : it.second )
+        {
+            LOG( "Added preprocess action ... %s", before.Name.c_str() );
+        }
     }
 
-    for( const ScriptEdit& after : EditAfter )
+    for( const auto& it : EditAfter )
     {
-        LOG( "Added postprocess action ... %s", after.Name.c_str() );
+        for( const ScriptEdit& after : it.second )
+        {
+            LOG( "Added postprocess action ... %s", after.Name.c_str() );
+        }
     }
 }
 

@@ -244,11 +244,11 @@ public:
     };
 
 
-    std::map<std::string, ScriptEditIf> EditIf;
-    std::map<std::string, ScriptEditDo> EditDo;
-    std::vector<ScriptEdit>             EditBefore;
-    std::vector<ScriptEdit>             EditAfter;
-    bool                                EditDebug;
+    std::map<std::string, ScriptEditIf>             EditIf;
+    std::map<std::string, ScriptEditDo>             EditDo;
+    std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
+    std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
+    bool                                            EditDebug;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );
@@ -264,7 +264,7 @@ public:
     //
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
-    void ProcessScriptEdit( const std::vector<ScriptEdit>& edits, ScriptCode& code );
+    void ProcessScriptEdit( const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
     void ProcessScriptEditChangelog( const std::vector<std::pair<std::string, std::string>>& changelog );
 
     //

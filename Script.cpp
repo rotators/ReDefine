@@ -909,7 +909,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                 ScriptEdit edit;
                 edit.Name = category + name;
 
-                bool ignore = false, before = false, after = false;
+                bool         ignore = false, before = false, after = false;
+                unsigned int priority = 100;
 
                 for( const auto& action : Config->GetStrVec( section, name ) )
                 {
@@ -968,6 +969,19 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         ignore = true;
                         break;
                     }
+
+                    if( (arg[0] == "RunBefore" || arg[0] == "RunAfter") && vals.size() && !vals[0].empty() )
+                    {
+                        int tmpriority;
+                        if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
+                        {
+                            WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", vals[0] );
+                            ignore = true;
+                            break;
+                        }
+
+                        priority = tmpriority;
+                    }
                 }
 
                 // DEBUG( __FUNCTION__, "%s : before<%s> after<%s> condition<%u>, result<%u>", edit.Name.c_str(), edit.Before ? "true" : "false", edit.After ? "true" : "false", edit.Conditions.size(), edit.Results.size() );
@@ -1000,9 +1014,9 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     continue;
 
                 if( before )
-                    EditBefore.push_back( edit );
+                    EditBefore[priority].push_back( edit );
                 if( after )
-                    EditAfter.push_back( edit );
+                    EditAfter[priority].push_back( edit );
             }
         }
     }
@@ -1217,7 +1231,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
     }
 }
 
-void ReDefine::ProcessScriptEdit( const std::vector<ReDefine::ScriptEdit>& edits, ReDefine::ScriptCode& code )
+void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& code )
 {
     // editing must always works on backup to prevent massive screwup,
     // original code will be updated only if there's no problems with *any* condition/result function
@@ -1228,70 +1242,73 @@ void ReDefine::ProcessScriptEdit( const std::vector<ReDefine::ScriptEdit>& edits
     ReDefine::SStatus::SCurrent                      previous = Status.Current;
     std::vector<std::pair<std::string, std::string>> changelog;
 
-    for( const ScriptEdit& edit : edits )
+    for( const auto& it : edits )
     {
-        const bool        editDebug = edit.Debug ? edit.Debug : EditDebug;
-
-        bool              run = false, first = true;
-        const std::string editString = "script edit<" + edit.Name + ">";
-        std::string       log;
-
-        // all conditions needs to be satisfied
-        for( const ScriptEdit::Action& condition: edit.Conditions )
+        for( const ScriptEdit& edit : it.second )
         {
-            run = codeUpdate.CallEditIf( condition.Name, condition.Values );
+            const bool        editDebug = edit.Debug ? edit.Debug : EditDebug;
 
-            if( editDebug && ( (first && run) || !first ) )
-                changelog.push_back( std::make_pair( editString + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" ) );
+            bool              run = false, first = true;
+            const std::string editString = "script edit<" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
+            std::string       log;
 
-            if( !run )
-                break;
-
-            first = false;
-        }
-
-        if( !run )
-            continue;
-
-        first = true;
-
-        // you are Result, you must Do
-        for( const ScriptEdit::Action& result : edit.Results )
-        {
-            std::string log;
-
-            if( editDebug )
+            // all conditions needs to be satisfied
+            for( const ScriptEdit::Action& condition: edit.Conditions )
             {
-                log = editString + " " + result.Name + (result.Values.size() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
+                run = codeUpdate.CallEditIf( condition.Name, condition.Values );
 
-                if( first )
-                {
-                    changelog.push_back( std::make_pair( editString + " script code", GetFullString( codeUpdate ) ) );
-                    first = false;
-                }
+                if( editDebug && ( (first && run) || !first ) )
+                    changelog.push_back( std::make_pair( editString + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" ) );
+
+                if( !run )
+                    break;
+
+                first = false;
             }
 
-            run = codeUpdate.CallEditDo( result.Name, result.Values );
-
             if( !run )
+                continue;
+
+            first = true;
+
+            // you are Result, you must Do
+            for( const ScriptEdit::Action& result : edit.Results )
             {
+                std::string log;
+
                 if( editDebug )
                 {
-                    changelog.push_back( std::make_pair( log, "(ERROR)" ) );
-                    ProcessScriptEditChangelog( changelog );
+                    log = editString + " " + result.Name + (result.Values.size() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
+
+                    if( first )
+                    {
+                        changelog.push_back( std::make_pair( editString + " script code", GetFullString( codeUpdate ) ) );
+                        first = false;
+                    }
                 }
 
-                WARNING( nullptr, "script edit<%s> aborted : result<%s> failed", edit.Name.c_str(), result.Name.c_str() );
+                run = codeUpdate.CallEditDo( result.Name, result.Values );
 
-                return;
+                if( !run )
+                {
+                    if( editDebug )
+                    {
+                        changelog.push_back( std::make_pair( log, "(ERROR)" ) );
+                        ProcessScriptEditChangelog( changelog );
+                    }
+
+                    WARNING( nullptr, "script edit<%s> aborted : result<%s> failed", edit.Name.c_str(), result.Name.c_str() );
+
+                    return;
+                }
+
+                if( editDebug )
+                    changelog.push_back( std::make_pair( log, GetFullString( codeUpdate ) ) );
+
+                codeUpdate.SetFlag( SCRIPT_CODE_EDITED );
             }
 
-            if( editDebug )
-                changelog.push_back( std::make_pair( log, GetFullString( codeUpdate ) ) );
-
-            codeUpdate.SetFlag( SCRIPT_CODE_EDITED );
         }
-
     }
 
     if( !changelog.empty() )
