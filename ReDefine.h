@@ -182,14 +182,15 @@ public:
 
     struct ScriptFile
     {
-        std::string              Name;
         std::vector<std::string> Defines;
     };
 
     enum ScriptCodeFlag : unsigned int
     {
         SCRIPT_CODE_FUNCTION = 0x01, // set for functions, unset for variables
-        SCRIPT_CODE_EDITED   = 0x02  // set if any result function success
+        SCRIPT_CODE_EDITED   = 0x02, // set if any result function has been executed
+        SCRIPT_CODE_REFRESH  = 0x04, // set when code needs standard processing between edits
+        SCRIPT_CODE_RESTART  = 0x08  // set by DoRestart
     };
 
     struct ScriptCode
@@ -211,8 +212,17 @@ public:
         void SetFlag( unsigned int flag );
         void UnsetFlag( unsigned int flag );
 
+        // returns string representation of ScriptCode
+        std::string GetFullString() const;
+
+        // sets ScriptCode::Full to value returned by GetFullString()
+        void SetFullString();
+
+        // helpers
+
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
+        bool IsVariable( const char* caller ) const;
         bool IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const;
 
         bool GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const;
@@ -255,22 +265,20 @@ public:
 
     bool ReadConfigScript( const std::string& sectionPrefix );
 
-    // returns string representation of ScriptCode
-    std::string GetFullString( const ScriptCode& code );
-
-    // sets ScriptCode::Full to value returned by GetFullString()
-    void SetFullString( ScriptCode& code );
 
     //
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
-    void ProcessScriptEdit( const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
+    void ProcessScriptVariable( ScriptCode& code );
+    void ProcessScriptFunction( ScriptCode& code );
+    void ProcessScriptEdit( const std::string& info, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
     void ProcessScriptEditChangelog( const std::vector<std::pair<std::string, std::string>>& changelog );
 
     //
     // Text
     //
 
+    bool                     TextIsBlank( const std::string& text );
     bool                     TextIsComment( const std::string& text );
     bool                     TextIsInt( const std::string& text );
     std::string              TextGetFilename( const std::string& path, const std::string& filename );
@@ -287,8 +295,8 @@ public:
     bool       TextGetDefine( const std::string& text, const std::regex& re, std::string& name, int& value );
     std::regex TextGetDefineRegex( std::string prefix, std::string suffix, bool paren );
 
-    std::vector<ScriptCode> TextGetVariables( const std::string& text );
-    std::vector<ScriptCode> TextGetFunctions( const std::string& text );
+    unsigned int TextGetVariables( const std::string& text, std::vector<ScriptCode>& result );
+    unsigned int TextGetFunctions( const std::string& text, std::vector<ScriptCode>& result );
 
     //
     // Variables

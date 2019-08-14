@@ -33,6 +33,43 @@ void ReDefine::ScriptCode::UnsetFlag( unsigned int flag )
 
 //
 
+std::string ReDefine::ScriptCode::GetFullString() const
+{
+    std::string result;
+
+    if( IsFunction( nullptr ) || IsVariable( nullptr ) )
+    {
+        if( Name.empty() )
+            return std::string();
+
+        result = Name;
+
+        if( IsFunction( nullptr ) )
+        {
+            result += "(";
+
+            if( !Arguments.empty() )
+                result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+
+            result += ")";
+        }
+
+        if( !Operator.empty() && !OperatorArgument.empty() )
+        {
+            result += " " + Operator + " " + OperatorArgument;
+        }
+    }
+
+    return result;
+}
+
+void ReDefine::ScriptCode::SetFullString()
+{
+    Full = GetFullString();
+}
+
+//
+
 bool ReDefine::ScriptCode::IsFunction( const char* caller ) const
 {
     if( Name.empty() )
@@ -66,6 +103,30 @@ bool ReDefine::ScriptCode::IsFunctionKnown( const char* caller ) const
     {
         if( caller )
             Parent->WARNING( caller, "function<%s> must be added to configuration before using this action", Name.c_str() );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
+{
+    // as of now this is just silly/kinda pointless copypaste of IsFunction(),
+    // but will save some time when/if new code types are introduced
+
+    if( Name.empty() )
+    {
+        if( caller )
+            Parent->WARNING( caller, "name not set" );
+
+        return false;
+    }
+
+    if( IsFlag( SCRIPT_CODE_FUNCTION ) )
+    {
+        if( caller )
+            Parent->WARNING( caller, "script code<%s> is not a variable", Name.c_str() );
 
         return false;
     }
@@ -336,6 +397,8 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
 // ? IfName:STRING
 static bool IfName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    // TODO !IsVariable && !IsFunction
+
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
@@ -351,12 +414,16 @@ static bool IfNotEdited(  const ReDefine::ScriptCode& code, const std::vector<st
 // ? IfOperator
 static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
+    // TODO !IsVariable && !IsFunction
+
     return code.Operator.length() > 0;
 }
 
 // ? IfOperatorName:STRING
 static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    // TODO !IsVariable && !IsFunction
+
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
@@ -369,6 +436,8 @@ static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector
 // ? IfOperatorValue:STRING
 static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    // TODO !IsVariable && !IsFunction
+
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
@@ -384,7 +453,7 @@ static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vecto
 // > IfName
 static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( code.IsFunction( nullptr ) )
+    if( !code.IsVariable( nullptr ) )
         return false;
 
     if( code.IsValues( nullptr, values, 1 ) )
@@ -725,6 +794,8 @@ static bool DoFunction(  ReDefine::ScriptCode& code, const std::vector<std::stri
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
     }
+    else
+        code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
 
     return true;
 }
@@ -766,6 +837,8 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoNameCount:STRING
 static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    // TODO !IsVariable && !IsFunction
+
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
@@ -777,10 +850,14 @@ static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::stri
 // ? DoNameSet:STRING
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    // TODO !IsVariable && !IsFunction
+
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     code.Name = values[0];
+    code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
+
 
     return true;
 }
@@ -788,27 +865,44 @@ static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string
 // ? DoOperatorClear
 static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
+    // TODO !IsVariable && !IsFunction
+
     code.Operator.clear();
     code.OperatorArgument.clear();
 
     return true;
 }
 
+// ? DoRestart
+static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string>& )
+{
+    code.SetFlag( ReDefine::SCRIPT_CODE_RESTART );
+
+    return true;
+}
+
 // ? DoVariable
 // ? DoVariable:STRING
+// > DoArgumentsClear
 // > DoNameSet
 static bool DoVariable(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.CallEditDo( "DoArgumentsClear" ) )
-        return false;
+    if( code.IsFunction( nullptr ) )
+    {
+        if( !code.CallEditDo( "DoArgumentsClear" ) )
+            return false;
 
-    code.UnsetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
+        code.UnsetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
+    }
 
     if( code.IsValues( nullptr, values, 1 ) )
     {
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
     }
+    else
+        code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
+
 
     return true;
 }
@@ -851,6 +945,7 @@ void ReDefine::InitScript()
     EditDo["DoNameCount"] = &DoNameCount;
     EditDo["DoNameSet"] = &DoNameSet;
     EditDo["DoOperatorClear"] = &DoOperatorClear;
+    EditDo["DoRestart"] = &DoRestart;
     EditDo["DoVariable"] = &DoVariable;
 }
 
@@ -1026,37 +1121,6 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
 // utils
 
-std::string ReDefine::GetFullString( const ScriptCode& code )
-{
-    std::string result;
-
-    if( !code.Name.length() )
-        return result;
-
-    result = code.Name;
-
-    if( code.IsFlag( SCRIPT_CODE_FUNCTION ) )
-    {
-        result += "(";
-
-        if( code.Arguments.size() )
-            result += " " + TextGetJoined( code.Arguments, ", " ) + " ";
-
-        result += ")";
-    }
-
-    if( code.Operator.length() && code.OperatorArgument.length() )
-    {
-        result += " " + code.Operator + " " + code.OperatorArgument;
-    }
-
-    return result;
-}
-
-void ReDefine::SetFullString( ScriptCode& code )
-{
-    code.Full = GetFullString( code );
-}
 
 
 // processing
@@ -1072,16 +1136,18 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
 
     Status.Current.File = filename;
 
-    bool              updateFile = false;
-    std::string       content;
-    unsigned int      changes = 0;
+    bool                 updateFile = false, restart = false;
+    std::string          content, newline = "\r\n";
+    unsigned int         changes = 0;
+    unsigned short       restartCount = 0;
+    const unsigned short restartLimit = 1000;
 
-    SStatus::SCurrent previous;
+    SStatus::SCurrent    previous;
 
-    ScriptFile*       file = new ScriptFile();
+    ScriptFile*          file = new ScriptFile();
 
-    std::smatch       match;
-    std::regex        define( "^[\\t\\ ]*\\#define[\\t\\ ]+([A-Za-z0-9_]+)(?:$|[\\t\\ ]+.*$)" );
+    std::smatch          match;
+    std::regex           define( "^[\\t\\ ]*\\#define[\\t\\ ]+([A-Za-z0-9_]+)(?:$|[\\t\\ ]+.*$)" );
 
     for( auto& line : lines )
     {
@@ -1090,10 +1156,17 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         Status.Current.Line = line;
         Status.Current.LineNumber++;
 
-        // skip empty/fully commented
-        if( !line.size() || TextIsComment( line ) )
+        // skip empty
+        // lines containing only spaces and/or tabs will be cleared
+        if( line.empty() || TextIsBlank( line ) )
         {
-            content += line + "\r\n";
+            content += newline;
+            continue;
+        }
+        // skip fully commented
+        else if( TextIsComment( line ) )
+        {
+            content += line + newline;
             continue;
         }
 
@@ -1107,64 +1180,66 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         // save original line
         const std::string lineOld = line;
 
-        // process variables
-        for( const ScriptCode& var : TextGetVariables( line ) )
+        restart = true;
+        restartCount = 0;
+
+        while( restart )
         {
-            ScriptCode varUpdate = var;
-            varUpdate.File = file;
-
-            // "preprocess" variable
-            ProcessScriptEdit( EditBefore, varUpdate );
-
-            ProcessOperator( VariablesOperators, varUpdate );
-
-            // try to guess define name for right part only if variable isn't known
-            if( VariablesOperators.find( varUpdate.Name ) == VariablesOperators.end() && varUpdate.Operator.length() && varUpdate.OperatorArgument.length() )
-                ProcessValueGuessing( varUpdate.OperatorArgument );
-
-            // "postprocess" variable
-            ProcessScriptEdit( EditAfter, varUpdate );
-
-            // update if needed
-            SetFullString( varUpdate );
-            if( TextGetPacked( var.Full ) != TextGetPacked( varUpdate.Full ) )
-                line = TextGetReplaced( line, var.Full, varUpdate.Full );
-        }
-
-        // process functions
-        for( const ScriptCode& func : TextGetFunctions( line ) )
-        {
-            ScriptCode funcUpdate = func;
-            funcUpdate.File = file;
-
-            // prepare function arguments types, required by some RunBefore edits
-            auto it = FunctionsArguments.find( funcUpdate.Name );
-            if( it != FunctionsArguments.end() )
-                funcUpdate.ArgumentsTypes = it->second;
-            else if( !funcUpdate.Arguments.empty() )
+            restart = false;
+            if( restartCount > restartLimit )
             {
-                funcUpdate.ArgumentsTypes.resize( funcUpdate.Arguments.size() );
-                std::fill( funcUpdate.ArgumentsTypes.begin(), funcUpdate.ArgumentsTypes.end(), "?" );
+                WARNING( __FUNCTION__, "line processing stopped : reached restart limit<%u>", restartLimit );
+                break;
             }
 
-            // "preprocess" function
-            ProcessScriptEdit( EditBefore, funcUpdate );
+            // extract more or less interesting code
+            std::vector<ScriptCode> extracted;
+            TextGetVariables( line, extracted );
+            TextGetFunctions( line, extracted );
 
-            ProcessFunctionArguments( funcUpdate );
-            ProcessOperator( FunctionsOperators, funcUpdate );
+            for( const ScriptCode& code : extracted )
+            {
+                ScriptCode codeUpdate = code;
+                codeUpdate.File = file;
 
-            // try to guess define name for right part only if function isn't known
-            // guessing arguments is done by ProcessFunctionArguments()
-            if( FunctionsOperators.find( funcUpdate.Name ) == FunctionsOperators.end() && funcUpdate.Operator.length() && funcUpdate.OperatorArgument.length() )
-                ProcessValueGuessing( funcUpdate.OperatorArgument );
+                // prepare function arguments types (required by some edit actions)
+                if( codeUpdate.IsFunction( nullptr ) )
+                {
+                    auto it = FunctionsArguments.find( codeUpdate.Name );
+                    if( it != FunctionsArguments.end() )
+                        codeUpdate.ArgumentsTypes = it->second;
+                    else if( !codeUpdate.Arguments.empty() )
+                    {
+                        codeUpdate.ArgumentsTypes.resize( codeUpdate.Arguments.size() );
+                        std::fill( codeUpdate.ArgumentsTypes.begin(), codeUpdate.ArgumentsTypes.end(), "?" );
+                    }
+                }
 
-            // "postprocess" function
-            ProcessScriptEdit( EditAfter, funcUpdate );
+                // "preprocess"
+                ProcessScriptEdit( "Before", EditBefore, codeUpdate );
 
-            // update line if needed
-            SetFullString( funcUpdate );
-            if( TextGetPacked( func.Full ) != TextGetPacked( funcUpdate.Full ) )
-                line = TextGetReplaced( line, func.Full, funcUpdate.Full );
+                // standard replacements
+                if( codeUpdate.IsVariable( nullptr ) )
+                    ProcessScriptVariable( codeUpdate );
+                else if( codeUpdate.IsFunction( nullptr ) )
+                    ProcessScriptFunction( codeUpdate );
+
+                // "postprocess"
+                ProcessScriptEdit( "After", EditAfter, codeUpdate );
+
+                // update if needed
+                codeUpdate.SetFullString();
+                if( TextGetPacked( code.Full ) != TextGetPacked( codeUpdate.Full ) )
+                    line = TextGetReplaced( line, code.Full, codeUpdate.Full );
+
+                // handle restart
+                if( codeUpdate.IsFlag( SCRIPT_CODE_RESTART ) )
+                {
+                    codeUpdate.UnsetFlag( SCRIPT_CODE_RESTART );
+                    restartCount++;
+                    restart = true;
+                }
+            }
         }
 
         // process raw replacement
@@ -1194,7 +1269,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         }
 
         // we did it, Rotators!
-        content += line + "\r\n";
+        content += line + newline;
     }
 
     Status.Current.Clear();
@@ -1212,6 +1287,13 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
 
     if( updateFile )
     {
+        std::size_t pos = content.find_last_not_of( newline + "\t" );
+        if( pos != std::string::npos )
+        {
+            content.erase( ++pos );
+            content += newline;
+        }
+
         std::ofstream file;
         file.open( TextGetFilename( path, filename ), std::ios::out );
 
@@ -1231,7 +1313,33 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
     }
 }
 
-void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& code )
+void ReDefine::ProcessScriptVariable( ScriptCode& code )
+{
+    if( !code.IsVariable( __FUNCTION__ ) )
+        return;
+
+    ProcessOperator( VariablesOperators, code );
+
+    // try to guess define name for right part only if variable isn't known
+    if( VariablesOperators.find( code.Name ) == VariablesOperators.end() && code.Operator.length() && code.OperatorArgument.length() )
+        ProcessValueGuessing( code.OperatorArgument );
+}
+
+void ReDefine::ProcessScriptFunction( ScriptCode& code )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return;
+
+    ProcessFunctionArguments( code );
+    ProcessOperator( FunctionsOperators, code );
+
+    // try to guess define name for right part only if function isn't known
+    // guessing arguments is done by ProcessFunctionArguments()
+    if( FunctionsOperators.find( code.Name ) == FunctionsOperators.end() && code.Operator.length() && code.OperatorArgument.length() )
+        ProcessValueGuessing( code.OperatorArgument );
+}
+
+void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& code )
 {
     // editing must always works on backup to prevent massive screwup,
     // original code will be updated only if there's no problems with *any* condition/result function
@@ -1249,7 +1357,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
             const bool        editDebug = edit.Debug ? edit.Debug : EditDebug;
 
             bool              run = false, first = true;
-            const std::string editString = "script edit<" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
+            const std::string editString = "script edit<" + info + ":" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
             std::string       log;
 
             // all conditions needs to be satisfied
@@ -1258,7 +1366,12 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 run = codeUpdate.CallEditIf( condition.Name, condition.Values );
 
                 if( editDebug && ( (first && run) || !first ) )
+                {
+                    if( first && run )
+                        changelog.push_back( std::make_pair( editString + " script code", codeUpdate.GetFullString() ) );
+
                     changelog.push_back( std::make_pair( editString + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" ) );
+                }
 
                 if( !run )
                     break;
@@ -1280,11 +1393,11 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 {
                     log = editString + " " + result.Name + (result.Values.size() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
-                    if( first )
-                    {
-                        changelog.push_back( std::make_pair( editString + " script code", GetFullString( codeUpdate ) ) );
-                        first = false;
-                    }
+                    // if( first )
+                    // {
+                    //    changelog.push_back( std::make_pair( editString + " script code (init)", codeUpdate.GetFullString() ) );
+                    //    first = false;
+                    // }
                 }
 
                 run = codeUpdate.CallEditDo( result.Name, result.Values );
@@ -1302,25 +1415,53 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                     return;
                 }
 
+
                 if( editDebug )
-                    changelog.push_back( std::make_pair( log, GetFullString( codeUpdate ) ) );
+                    changelog.push_back( std::make_pair( log, codeUpdate.GetFullString() ) );
 
                 codeUpdate.SetFlag( SCRIPT_CODE_EDITED );
+
+                if( codeUpdate.IsFlag( SCRIPT_CODE_RESTART ) )
+                {
+                    ProcessScriptEditChangelog( changelog );
+
+                    // push changes
+                    codeUpdate.Parent = nullptr;
+                    code = codeUpdate;
+
+                    return;
+                }
+
+            } // for( const ScriptEdit::Action& result : edit.Results )
+
+            // handle refresh
+            if( codeUpdate.IsFlag( SCRIPT_CODE_REFRESH ) )
+            {
+                codeUpdate.UnsetFlag( SCRIPT_CODE_REFRESH );
+
+                if( codeUpdate.IsVariable( nullptr ) )
+                    ProcessScriptVariable( codeUpdate );
+                else if( codeUpdate.IsFunction( nullptr ) )
+                    ProcessScriptFunction( codeUpdate );
+
+                // TODO? show only if code changed
+                // if( editDebug )
+                //    changelog.push_back( std::make_pair( editString + " script code (refresh)", codeUpdate.GetFullString() ) );
             }
+        } // for( const ScriptEdit& edit : it.second )
+    }     // for( const auto& it : edits )
 
-        }
-    }
+    ProcessScriptEditChangelog( changelog );
 
-    if( !changelog.empty() )
-        ProcessScriptEditChangelog( changelog );
-
+    // push changes
     codeUpdate.Parent = nullptr;
     code = codeUpdate;
 }
 
 void ReDefine::ProcessScriptEditChangelog( const std::vector<std::pair<std::string, std::string>>& changelog )
 {
-    // ugh
+    if( changelog.empty() )
+        return;
 
     unsigned int max = 0;
     for( const auto& change : changelog )
@@ -1334,8 +1475,13 @@ void ReDefine::ProcessScriptEditChangelog( const std::vector<std::pair<std::stri
 
     for( const auto& change : changelog )
     {
-        std::string dots = std::string( (max - change.first.length() ) + 3, '.' );
-        DEBUG( nullptr, "%s %s %s", change.first.c_str(), dots.c_str(), change.second.c_str() );
+        if( !change.second.empty() )
+        {
+            std::string dots = std::string( (max - change.first.length() ) + 3, '.' );
+            DEBUG( nullptr, "%s %s %s", change.first.c_str(), dots.c_str(), change.second.c_str() );
+        }
+        else
+            DEBUG( nullptr, "%s", change.first.c_str() );
     }
 
     Status.Current = previous;

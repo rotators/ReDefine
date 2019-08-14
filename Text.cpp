@@ -18,14 +18,20 @@ namespace std_filesystem = std::experimental::filesystem;
 
 #include "ReDefine.h"
 
+static std::regex IsBlank( "^[\\t\\ ]*$" );
 static std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
 static std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
 static std::regex IsInt( "^[\\-]?[0-9]+$" );
 
-static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+)[\\t\\ ]*([\\-]?[0-9]+)" );
+static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
 
 static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
 static std::regex GetFunctionsQuotedText( "\".*?\"" );
+
+bool ReDefine::TextIsBlank( const std::string& text )
+{
+    return std::regex_match( text, IsBlank );
+}
 
 bool ReDefine::TextIsComment( const std::string& text )
 {
@@ -191,9 +197,9 @@ std::regex ReDefine::TextGetDefineRegex( std::string prefix, std::string suffix,
 
 //
 
-std::vector<ReDefine::ScriptCode> ReDefine::TextGetVariables( const std::string& text )
+unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
 {
-    std::vector<ScriptCode> result;
+    unsigned int count = 0;
 
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariables ), end = std::sregex_iterator(); it != end; ++it )
     {
@@ -205,16 +211,17 @@ std::vector<ReDefine::ScriptCode> ReDefine::TextGetVariables( const std::string&
         variable.OperatorArgument = it->str( 3 );
 
         result.push_back( variable );
+        count++;
     }
 
-    return result;
+    return count;
 }
 
-std::vector<ReDefine::ScriptCode> ReDefine::TextGetFunctions( const std::string& text )
+unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
 {
-    std::vector<ScriptCode> result;
+    unsigned int count = 0;
 
-    unsigned int            funcIdx = 0;
+    unsigned int funcIdx = 0;
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetFunctions ), end = std::sregex_iterator(); it != end; ++it, funcIdx++ )
     {
         const std::string        func = it->str( 1 );
@@ -420,7 +427,8 @@ std::vector<ReDefine::ScriptCode> ReDefine::TextGetFunctions( const std::string&
         function.OperatorArgument = TextGetTrimmed( opArg );
 
         result.push_back( function );
+        count++;
     }
 
-    return result;
+    return count;
 }
