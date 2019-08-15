@@ -36,18 +36,25 @@ bool ReDefine::ReadConfigFunctions( const std::string& sectionPrefix )
             for( const auto& name : keys )
             {
                 std::vector<std::string> types = Config->GetStrVec( section, name );
-                if( !types.size() )
+                if( types.empty() )
                 {
                     WARNING( "config setting<%s->%s> is empty", section.c_str(), name.c_str() );
                     continue;
                 }
 
-                // type validation is part of ProcessHeaders(),
-                // as at this point *Defines maps might not be initialized yet,
                 FunctionProto proto;
                 proto.ReturnType = "?";
                 proto.ArgumentsTypes = types;
 
+                // if first argument is "[TYPE]", set function return type to "TYPE" and remove it from arguments list
+                if( proto.ArgumentsTypes[0].length() >= 3 && proto.ArgumentsTypes[0].front() == '[' && proto.ArgumentsTypes[0].front() == ']' )
+                {
+                    proto.ReturnType = proto.ArgumentsTypes[0].substr( 1, proto.ArgumentsTypes[0].length() - 2 );
+                    proto.ArgumentsTypes.erase( proto.ArgumentsTypes.begin() );
+                }
+
+                // type validation is part of ProcessHeaders(),
+                // as at this point *Defines maps might not be initialized yet
                 FunctionsPrototypes[name] = proto;
             }
         }
