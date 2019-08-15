@@ -4,10 +4,10 @@
 
 #include "ReDefine.h"
 
-ReDefine::ScriptCode::ScriptCode( ReDefine* parent /* = nullptr */ ) :
-    Parent( parent ),
+ReDefine::ScriptCode::ScriptCode( const unsigned int& flags /* = 0 */ ) :
+    Parent( nullptr ),
     File( nullptr ),
-    Flags( 0 ),
+    Flags( flags ),
     Full( "" ),
     Name( "" ),
     Arguments(),
@@ -29,6 +29,14 @@ void ReDefine::ScriptCode::SetFlag( unsigned int flag )
 void ReDefine::ScriptCode::UnsetFlag( unsigned int flag )
 {
     Flags = (Flags | flag) ^ flag;
+}
+
+void ReDefine::ScriptCode::SetType( const ReDefine::ScriptCodeFlag& type )
+{
+    UnsetFlag( SCRIPT_CODE_VARIABLE );
+    UnsetFlag( SCRIPT_CODE_FUNCTION );
+
+    SetFlag( type );
 }
 
 //
@@ -70,6 +78,27 @@ void ReDefine::ScriptCode::SetFullString()
 
 //
 
+bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
+{
+    if( Name.empty() )
+    {
+        if( caller )
+            Parent->WARNING( caller, "name not set" );
+
+        return false;
+    }
+
+    if( !IsFlag( SCRIPT_CODE_VARIABLE ) )
+    {
+        if( caller )
+            Parent->WARNING( caller, "script code<%s> is not a variable", Name.c_str() );
+
+        return false;
+    }
+
+    return true;
+}
+
 bool ReDefine::ScriptCode::IsFunction( const char* caller ) const
 {
     if( Name.empty() )
@@ -93,9 +122,6 @@ bool ReDefine::ScriptCode::IsFunction( const char* caller ) const
 
 bool ReDefine::ScriptCode::IsFunctionKnown( const char* caller ) const
 {
-    if( !Parent )
-        return false;
-
     if( !IsFunction( caller ) )
         return false;
 
@@ -110,11 +136,8 @@ bool ReDefine::ScriptCode::IsFunctionKnown( const char* caller ) const
     return true;
 }
 
-bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
+bool ReDefine::ScriptCode::IsVariableOrFunction( const char* caller ) const
 {
-    // as of now this is just silly/kinda pointless copypaste of IsFunction(),
-    // but will save some time when/if new code types are introduced
-
     if( Name.empty() )
     {
         if( caller )
@@ -123,10 +146,10 @@ bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
         return false;
     }
 
-    if( IsFlag( SCRIPT_CODE_FUNCTION ) )
+    if( !IsFlag( SCRIPT_CODE_VARIABLE ) && !IsFlag( SCRIPT_CODE_FUNCTION ) )
     {
         if( caller )
-            Parent->WARNING( caller, "script code<%s> is not a variable", Name.c_str() );
+            Parent->WARNING( caller, "script code<%s> is not a variable or function", Name.c_str() );
 
         return false;
     }
@@ -162,9 +185,6 @@ bool ReDefine::ScriptCode::IsValues( const char* caller, const std::vector<std::
 
 bool ReDefine::ScriptCode::GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const
 {
-    if( !Parent )
-        return false;
-
     unsigned int tmp;
     if( !GetUINT( caller, value, tmp, "INDEX" ) )
         return false;
@@ -183,9 +203,6 @@ bool ReDefine::ScriptCode::GetINDEX( const char* caller, const std::string& valu
 
 bool ReDefine::ScriptCode::GetTYPE( const char* caller, const std::string& value, bool allowUnknown /* = true */ ) const
 {
-    if( !Parent )
-        return false;
-
     if( value.empty() )
     {
         if( caller )
@@ -210,9 +227,6 @@ bool ReDefine::ScriptCode::GetTYPE( const char* caller, const std::string& value
 
 bool ReDefine::ScriptCode::GetUINT( const char* caller, const std::string& value, unsigned int& val, const std::string& name /* = "UINT" */ ) const
 {
-    if( !Parent )
-        return false;
-
     int tmp = -1;
     if( !Parent->TextIsInt( value ) || !Parent->TextGetInt( value, tmp ) )
     {
@@ -278,10 +292,10 @@ ReDefine::ScriptEdit::ScriptEdit() :
 // ? IfArgumentIs:INDEX,DEFINE,TYPE
 static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunctionKnown( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunctionKnown( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -315,10 +329,10 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
 // ? IfArgumentValue:INDEX,STRING
 static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -331,10 +345,10 @@ static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector
 // ? IfArgumentNotValue:INDEX,STRING
 static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -397,7 +411,8 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
 // ? IfName:STRING
 static bool IfName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
@@ -414,7 +429,8 @@ static bool IfNotEdited(  const ReDefine::ScriptCode& code, const std::vector<st
 // ? IfOperator
 static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     return code.Operator.length() > 0;
 }
@@ -422,7 +438,8 @@ static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std
 // ? IfOperatorName:STRING
 static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
@@ -436,7 +453,8 @@ static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector
 // ? IfOperatorValue:STRING
 static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
@@ -475,10 +493,10 @@ static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std
 // ? DoArgumentCount:INDEX,STRING
 static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -493,10 +511,10 @@ static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoArgumentSet:INDEX,STRING
 static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -512,10 +530,10 @@ static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::s
 // > DoArgumentSet
 static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -529,10 +547,10 @@ static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<
 // > DoArgumentSet
 static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -545,10 +563,10 @@ static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<
 // ? DoArgumentSetType:INDEX,TYPE
 static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
         return false;
 
     unsigned int idx;
@@ -565,10 +583,10 @@ static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<st
 // ? DoArgumentLookup:INDEX,STRING
 static bool DoArgumentLookup(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     unsigned int idx;
@@ -643,10 +661,10 @@ static bool DoArgumentsClear(  ReDefine::ScriptCode& code, const std::vector<std
 // ? DoArgumentsErase:INDEX
 static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     unsigned int idx;
@@ -664,10 +682,10 @@ static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std
 // > DoArgumentsPushBack
 static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     unsigned int idx;
@@ -690,10 +708,10 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
 // > DoArgumentsPushFront
 static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     unsigned int idx;
@@ -715,10 +733,10 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
 // ? DoArgumentsPushBack:STRING,TYPE
 static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     std::string type = "?";
@@ -739,10 +757,10 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
 // ? DoArgumentsPushFront:STRING,TYPE
 static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     std::string type = "?";
@@ -763,10 +781,10 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
 // > DoArgumentsClear
 static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+    if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
-    if( !code.IsFunction( __FUNCTION__ ) )
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
 
     unsigned int size;
@@ -787,15 +805,15 @@ static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std
 // > DoNameSet
 static bool DoFunction(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    code.SetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
+    code.SetType( ReDefine::SCRIPT_CODE_FUNCTION );
 
     if( code.IsValues( nullptr, values, 1 ) )
     {
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
     }
-    else
-        code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
+
+    code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
 
     return true;
 }
@@ -837,7 +855,8 @@ static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std:
 // ? DoNameCount:STRING
 static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
@@ -850,7 +869,8 @@ static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::stri
 // ? DoNameSet:STRING
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     if( !code.IsValues( __FUNCTION__, values, 1 ) )
         return false;
@@ -858,14 +878,14 @@ static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string
     code.Name = values[0];
     code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
 
-
     return true;
 }
 
 // ? DoOperatorClear
 static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
-    // TODO !IsVariable && !IsFunction
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
 
     code.Operator.clear();
     code.OperatorArgument.clear();
@@ -891,18 +911,17 @@ static bool DoVariable(  ReDefine::ScriptCode& code, const std::vector<std::stri
     {
         if( !code.CallEditDo( "DoArgumentsClear" ) )
             return false;
-
-        code.UnsetFlag( ReDefine::SCRIPT_CODE_FUNCTION );
     }
+
+    code.SetType( ReDefine::SCRIPT_CODE_VARIABLE );
 
     if( code.IsValues( nullptr, values, 1 ) )
     {
         if( !code.CallEditDo( "DoNameSet", { values[0] } ) )
             return false;
     }
-    else
-        code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
 
+    code.SetFlag( ReDefine::SCRIPT_CODE_REFRESH );
 
     return true;
 }
@@ -1209,6 +1228,13 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
             {
                 ScriptCode codeUpdate = code;
                 codeUpdate.File = file;
+
+                // make sure type flag is set
+                if( !codeUpdate.IsVariable( nullptr ) && !codeUpdate.IsFunction( nullptr ) )
+                {
+                    WARNING( __FUNCTION__, "script code<%s> ignored : type missing", codeUpdate.Name.c_str() );
+                    continue;
+                }
 
                 // prepare function arguments types (required by some edit actions)
                 if( codeUpdate.IsFunction( nullptr ) )

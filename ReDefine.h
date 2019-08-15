@@ -187,10 +187,16 @@ public:
 
     enum ScriptCodeFlag : unsigned int
     {
-        SCRIPT_CODE_FUNCTION = 0x01, // set for functions, unset for variables
-        SCRIPT_CODE_EDITED   = 0x02, // set if any result function has been executed
-        SCRIPT_CODE_REFRESH  = 0x04, // set when code needs standard processing between edits
-        SCRIPT_CODE_RESTART  = 0x08  // set by DoRestart
+        // types
+
+        SCRIPT_CODE_VARIABLE = 0x01,
+        SCRIPT_CODE_FUNCTION = 0x02,
+
+        //
+
+        SCRIPT_CODE_EDITED   = 0x10, // set if any result function has been executed
+        SCRIPT_CODE_REFRESH  = 0x20, // set when code needs standard processing between edits
+        SCRIPT_CODE_RESTART  = 0x40  // set by DoRestart
     };
 
     struct ScriptCode
@@ -206,11 +212,12 @@ public:
         std::string              Operator;
         std::string              OperatorArgument;
 
-        ScriptCode( ReDefine* parent = nullptr );
+        ScriptCode( const unsigned int& flags = 0 );
 
         bool IsFlag( unsigned int flag ) const;
         void SetFlag( unsigned int flag );
         void UnsetFlag( unsigned int flag );
+        void SetType( const ScriptCodeFlag& type );
 
         // returns string representation of ScriptCode
         std::string GetFullString() const;
@@ -220,9 +227,10 @@ public:
 
         // helpers
 
+        bool IsVariable( const char* caller ) const;
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
-        bool IsVariable( const char* caller ) const;
+        bool IsVariableOrFunction( const char* caller ) const;
         bool IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const;
 
         bool GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const;

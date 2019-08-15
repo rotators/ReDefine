@@ -212,7 +212,7 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
 
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariables ), end = std::sregex_iterator(); it != end; ++it )
     {
-        ScriptCode variable;
+        ScriptCode variable( SCRIPT_CODE_VARIABLE );
 
         variable.Full = it->str();
         variable.Name = it->str( 1 );
@@ -426,9 +426,8 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         }
 
         // update result
-        ScriptCode function;
+        ScriptCode function( SCRIPT_CODE_FUNCTION );
 
-        function.SetFlag( SCRIPT_CODE_FUNCTION );
         function.Full = full;
         function.Name = func;
         function.Arguments = args;
