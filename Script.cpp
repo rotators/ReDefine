@@ -987,7 +987,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
             std::string category;
             if( section != sectionPrefix )
-                category = section.substr( sectionPrefix.length() + 1 ) + ":";
+                category = section.substr( sectionPrefix.length() + 1 ) + "->";
 
             std::vector<std::string> keys;
             if( !Config->GetSectionKeys( section, keys, true ) )
@@ -1125,7 +1125,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
 // processing
 
-void ReDefine::ProcessScript( const std::string& path, const std::string& filename, bool readOnly /* = false */ )
+void ReDefine::ProcessScript( const std::string& path, const std::string& filename, const bool readOnly /* = false */ )
 {
     std::vector<std::string> lines;
     if( !ReadFile( TextGetFilename( path, filename ), lines ) )
@@ -1136,7 +1136,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
 
     Status.Current.File = filename;
 
-    bool                 updateFile = false, restart = false;
+    bool                 updateFile = false, conflict = false, restart = false;
     std::string          content, newline = "\r\n";
     unsigned int         changes = 0;
     unsigned short       restartCount = 0;
@@ -1168,6 +1168,14 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         {
             content += line + newline;
             continue;
+        }
+
+        // detect merge conflicts
+        if( TextIsConflict( line ) )
+        {
+            WARNING( nullptr, "possible merge conflict" );
+            Status.Process.Counters["!Possible merge conflicts!"][Status.Current.File]++;
+            conflict = true;
         }
 
         std::string defineName, defineValue;
@@ -1270,6 +1278,16 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
 
         // we did it, Rotators!
         content += line + newline;
+    }
+
+    // never update file with merge conflict
+    if( conflict && updateFile && !readOnly )
+    {
+        Status.Current.Line.clear();
+        Status.Current.LineNumber = 0;
+
+        WARNING( nullptr, "possible merge conflict : ignored all line changes<%u>", changes );
+        updateFile = false;
     }
 
     Status.Current.Clear();

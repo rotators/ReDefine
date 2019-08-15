@@ -281,6 +281,7 @@ public:
     bool                     TextIsBlank( const std::string& text );
     bool                     TextIsComment( const std::string& text );
     bool                     TextIsInt( const std::string& text );
+    bool                     TextIsConflict( const std::string& text );
     std::string              TextGetFilename( const std::string& path, const std::string& filename );
     bool                     TextGetInt( const std::string& text, int& result, const unsigned char& base = 10 );
     std::string              TextGetJoined( const std::vector<std::string>& text, const std::string& delimeter );

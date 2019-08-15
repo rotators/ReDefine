@@ -22,6 +22,7 @@ static std::regex IsBlank( "^[\\t\\ ]*$" );
 static std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
 static std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
 static std::regex IsInt( "^[\\-]?[0-9]+$" );
+static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
 static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
 
@@ -41,6 +42,14 @@ bool ReDefine::TextIsComment( const std::string& text )
 bool ReDefine::TextIsInt( const std::string& text )
 {
     return std::regex_match( text, IsInt );
+}
+
+bool ReDefine::TextIsConflict( const std::string& text )
+{
+    if( text.front() != '<' )
+        return false;
+
+    return std::regex_match( text, IsConflict );
 }
 
 std::string ReDefine::TextGetFilename( const std::string& path, const std::string& filename )
