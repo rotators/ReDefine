@@ -4,7 +4,7 @@
 
 void ReDefine::FinishFunctions()
 {
-    FunctionsArguments.clear();
+    FunctionsPrototypes.clear();
     FunctionsOperators.clear();
 }
 
@@ -44,7 +44,11 @@ bool ReDefine::ReadConfigFunctions( const std::string& sectionPrefix )
 
                 // type validation is part of ProcessHeaders(),
                 // as at this point *Defines maps might not be initialized yet,
-                FunctionsArguments[name] = types;
+                FunctionProto proto;
+                proto.ReturnType = "?";
+                proto.ArgumentsTypes = types;
+
+                FunctionsPrototypes[name] = proto;
             }
         }
         // [FunctionOPERATOR]
@@ -93,10 +97,10 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
     unsigned int found = 0, expected = 0;
 
     // known functions
-    auto it = FunctionsArguments.find( function.Name );
-    if( it != FunctionsArguments.end() )
+    auto it = FunctionsPrototypes.find( function.Name );
+    if( it != FunctionsPrototypes.end() )
     {
-        expected = it->second.size();
+        expected = it->second.ArgumentsTypes.size();
 
         if( expected != function.Arguments.size() )
         {

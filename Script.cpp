@@ -125,7 +125,7 @@ bool ReDefine::ScriptCode::IsFunctionKnown( const char* caller ) const
     if( !IsFunction( caller ) )
         return false;
 
-    if( Parent->FunctionsArguments.find( Name ) == Parent->FunctionsArguments.end() )
+    if( Parent->FunctionsPrototypes.find( Name ) == Parent->FunctionsPrototypes.end() )
     {
         if( caller )
             Parent->WARNING( caller, "function<%s> must be added to configuration before using this action", Name.c_str() );
@@ -1239,9 +1239,9 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
                 // prepare function arguments types (required by some edit actions)
                 if( codeUpdate.IsFunction( nullptr ) )
                 {
-                    auto it = FunctionsArguments.find( codeUpdate.Name );
-                    if( it != FunctionsArguments.end() )
-                        codeUpdate.ArgumentsTypes = it->second;
+                    auto it = FunctionsPrototypes.find( codeUpdate.Name );
+                    if( it != FunctionsPrototypes.end() )
+                        codeUpdate.ArgumentsTypes = it->second.ArgumentsTypes;
                     else if( !codeUpdate.Arguments.empty() )
                     {
                         codeUpdate.ArgumentsTypes.resize( codeUpdate.Arguments.size() );

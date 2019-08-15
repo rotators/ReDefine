@@ -243,8 +243,8 @@ void ReDefine::ProcessHeaders( const std::string& path )
         }
     }
 
-    GenericOperatorsMap validatedOperators;
-    StringVectorMap     validatedFunctions;
+    GenericOperatorsMap                  validatedOperators;
+    std::map<std::string, FunctionProto> validatedFunctions;
 
     // validate variables configuration
     // virtual ? types are not valid for variables
@@ -300,12 +300,18 @@ void ReDefine::ProcessHeaders( const std::string& path )
         }
     }
 
-    for( const auto& func : FunctionsArguments )
+    for( const auto& func : FunctionsPrototypes )
     {
         bool         valid = true;
         unsigned int argument = 0;
 
-        for( const auto& type : func.second )
+        if( !IsMysteryDefineType( func.second.ReturnType ) && !IsDefineType( func.second.ReturnType ) )
+        {
+            WARNING( __FUNCTION__, "unknown define type<%s> : function<%s> return type", func.second.ReturnType.c_str(), func.first.c_str() );
+            valid = false;
+        }
+
+        for( const auto& type : func.second.ArgumentsTypes )
         {
             argument++;
             if( !IsMysteryDefineType( type ) && !IsDefineType( type ) )
@@ -318,13 +324,13 @@ void ReDefine::ProcessHeaders( const std::string& path )
         if( !valid )
             continue;
 
-        LOG( "Added function ... %s( %s )", func.first.c_str(), TextGetJoined( func.second, ", " ).c_str() );
+        LOG( "Added function ... [%s] %s( %s )", func.second.ReturnType.c_str(), func.first.c_str(), TextGetJoined( func.second.ArgumentsTypes, ", " ).c_str() );
         validatedFunctions[func.first] = func.second;
     }
 
     // keep valid settings only
     FunctionsOperators = validatedOperators;
-    FunctionsArguments = validatedFunctions;
+    FunctionsPrototypes = validatedFunctions;
 
     // log raw replacement
     for( const auto& from : Raw )

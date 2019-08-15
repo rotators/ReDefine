@@ -130,8 +130,14 @@ public:
     // Functions
     //
 
-    StringVectorMap     FunctionsArguments; // <name, <types>>
-    GenericOperatorsMap FunctionsOperators; // <name, <operatorName, type>>
+    struct FunctionProto
+    {
+        std::string              ReturnType;
+        std::vector<std::string> ArgumentsTypes;
+    };
+
+    std::map<std::string, FunctionProto> FunctionsPrototypes;
+    GenericOperatorsMap                  FunctionsOperators; // <name, <operatorName, type>>
 
     void FinishFunctions();
 
