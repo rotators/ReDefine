@@ -5,91 +5,38 @@
 void ReDefine::FinishFunctions()
 {
     FunctionsPrototypes.clear();
-    FunctionsOperators.clear();
 }
 
 // reading
 
-bool ReDefine::ReadConfigFunctions( const std::string& sectionPrefix )
+bool ReDefine::ReadConfigFunctions( const std::string& section )
 {
     FinishFunctions();
 
-    std::vector<std::string> sections;
-    if( !Config->GetSections( sections ) )
+    std::vector<std::string> keys;
+    if( !Config->GetSectionKeys( section, keys ) )
         return true;
 
-    for( const auto& section : sections )
+    for( const auto& name : keys )
     {
-        // [???] //
-        if( section.substr( 0, sectionPrefix.length() ) != sectionPrefix )
+        std::vector<std::string> types = Config->GetStrVec( section, name );
+        if( types.empty() )
             continue;
-        // [Function] //
-        else if( section == sectionPrefix )
+
+        FunctionProto function;
+        function.ReturnType = "?";
+        function.ArgumentsTypes = types;
+
+        // if first argument is "[TYPE]", set function return type to "TYPE" and remove it from arguments list
+        if( function.ArgumentsTypes.front().length() >= 3 && function.ArgumentsTypes.front().front() == '[' && function.ArgumentsTypes.front().back() == ']' )
         {
-            std::vector<std::string> keys;
-            if( !Config->GetSectionKeys( section, keys ) )
-            {
-                WARNING( "config section<%s> is empty", section.c_str() );
-                continue;
-            }
-
-            for( const auto& name : keys )
-            {
-                std::vector<std::string> types = Config->GetStrVec( section, name );
-                if( types.empty() )
-                {
-                    WARNING( "config setting<%s->%s> is empty", section.c_str(), name.c_str() );
-                    continue;
-                }
-
-                FunctionProto proto;
-                proto.ReturnType = "?";
-                proto.ArgumentsTypes = types;
-
-                // if first argument is "[TYPE]", set function return type to "TYPE" and remove it from arguments list
-                if( proto.ArgumentsTypes[0].length() >= 3 && proto.ArgumentsTypes[0].front() == '[' && proto.ArgumentsTypes[0].front() == ']' )
-                {
-                    proto.ReturnType = proto.ArgumentsTypes[0].substr( 1, proto.ArgumentsTypes[0].length() - 2 );
-                    proto.ArgumentsTypes.erase( proto.ArgumentsTypes.begin() );
-                }
-
-                // type validation is part of ProcessHeaders(),
-                // as at this point *Defines maps might not be initialized yet
-                FunctionsPrototypes[name] = proto;
-            }
+            function.ReturnType = function.ArgumentsTypes[0].substr( 1, function.ArgumentsTypes[0].length() - 2 );
+            function.ArgumentsTypes.erase( function.ArgumentsTypes.begin() );
         }
-        // [FunctionOPERATOR]
-        // see InitOperators() for valid values for OPERATOR
-        else if( section.length() >= sectionPrefix.length() + 1 )
-        {
-            const std::string opName = section.substr( sectionPrefix.length(), section.length() - sectionPrefix.length() );
 
-            // Operators map should be available at this point, if initialized correctly
-            if( !IsOperatorName( opName ) )
-            {
-                DEBUG( __FUNCTION__, "config section<%s> ignored : substr<%s>", section.c_str(), section.substr( sectionPrefix.length(), 1 ).c_str() );
-                continue;
-            }
-
-            std::vector<std::string> keys;
-            if( !Config->GetSectionKeys( section, keys ) )
-            {
-                WARNING( "config section<%s> is empty", section.c_str() );
-                continue;
-            }
-
-            for( const auto& function : keys )
-            {
-                if( Config->GetStrVec( section, function ).size() != 1 )
-                    continue;
-
-                std::string type = Config->GetStr( section, function );
-
-                // type validation is part of ProcessHeaders(),
-                // as at this point *Defines maps might not be initialized yet,
-                FunctionsOperators[function][opName] = type;
-            }
-        }
+        // type validation is part of ProcessHeaders(),
+        // as at this point *Defines maps might not be initialized yet
+        FunctionsPrototypes[name] = function;
     }
 
     return true;

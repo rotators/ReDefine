@@ -21,7 +21,6 @@ public:
     //
 
     typedef std::map<std::string, std::map<int, std::string>>          DefinesMap;
-    typedef std::map<std::string, std::map<std::string, std::string>>  GenericOperatorsMap;
     typedef std::map<std::string, std::vector<std::string>>            StringVectorMap;
     typedef std::map<std::string, std::map<std::string, unsigned int>> CountersMap;
 
@@ -75,6 +74,7 @@ public:
         void Clear();
     }
     Status;
+
 
     ReDefine();
     virtual ~ReDefine();
@@ -137,11 +137,10 @@ public:
     };
 
     std::map<std::string, FunctionProto> FunctionsPrototypes;
-    GenericOperatorsMap                  FunctionsOperators; // <name, <operatorName, type>>
 
     void FinishFunctions();
 
-    bool ReadConfigFunctions( const std::string& sectionPrefix );
+    bool ReadConfigFunctions( const std::string& section );
 
     void ProcessFunctionArguments( ScriptCode& function );
 
@@ -168,7 +167,7 @@ public:
     std::string GetOperator( const std::string& opName );
     std::string GetOperatorName( const std::string& op );
 
-    void ProcessOperator( const GenericOperatorsMap& map, ScriptCode& code );
+    void ProcessOperator( const std::string& type, ScriptCode& code );
 
     //
     // Raw
@@ -202,21 +201,33 @@ public:
 
         SCRIPT_CODE_EDITED   = 0x10, // set if any result function has been executed
         SCRIPT_CODE_REFRESH  = 0x20, // set when code needs standard processing between edits
-        SCRIPT_CODE_RESTART  = 0x40  // set by DoRestart
+        SCRIPT_CODE_RESTART  = 0x40  // set by DoRestart; forces restart of line processing keeping changes already made to code
     };
 
     struct ScriptCode
     {
+        // always set
+
         ReDefine*                Parent;
         ScriptFile*              File;
 
-        unsigned int             Flags;
-        std::string              Full; // Name + (Arguments) + (Operator + OperatorArguments)
-        std::string              Name;
-        std::vector<std::string> Arguments;
-        std::vector<std::string> ArgumentsTypes;
-        std::string              Operator;
-        std::string              OperatorArgument;
+        // dynamic
+
+        unsigned int             Flags;            // see ScriptCoddeFlag
+        std::string              Full;
+        std::string              Name;             // used by variables/functions
+        std::string              ReturnType;       // used by variables/functions
+        std::vector<std::string> Arguments;        // used by functions
+        std::vector<std::string> ArgumentsTypes;   // used by functions
+        std::string              Operator;         // used by variables/functions
+        std::string              OperatorArgument; // used by variables/functions
+
+        // changelog
+        // keeps history of of all code changes
+
+        std::vector<std::pair<std::string, std::string>> Changes;
+
+        //
 
         ScriptCode( const unsigned int& flags = 0 );
 
@@ -248,6 +259,9 @@ public:
 
         // checks if result action exists before calling it
         bool CallEditDo( const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
+
+        void Change( const std::string& left, const std::string& right = std::string() );
+        void ChangeLog();
     };
 
     struct ScriptEdit
@@ -272,7 +286,8 @@ public:
     std::map<std::string, ScriptEditDo>             EditDo;
     std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
     std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
-    bool                                            EditDebug;
+
+    bool                                            DebugChanges;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );
@@ -283,10 +298,8 @@ public:
     //
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
-    void ProcessScriptVariable( ScriptCode& code );
-    void ProcessScriptFunction( ScriptCode& code );
+    void ProcessScriptReplacements( ScriptCode& code, bool refresh = false );
     void ProcessScriptEdit( const std::string& info, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
-    void ProcessScriptEditChangelog( const std::vector<std::pair<std::string, std::string>>& changelog );
 
     //
     // Text
@@ -317,12 +330,12 @@ public:
     // Variables
     //
 
-    GenericOperatorsMap      VariablesOperators; // <name, <operatorName, type>>
-    std::vector<std::string> VariablesGuessing;  // <types>
+    std::map<std::string, std::string> VariablesPrototypes;
+    std::vector<std::string>           VariablesGuessing;  // <types>
 
     void FinishVariables();
 
-    bool ReadConfigVariables( const std::string& sectionPrefix );
+    bool ReadConfigVariables( const std::string& section );
 };
 
 #endif // __REDEFINE__ //

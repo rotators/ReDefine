@@ -4,67 +4,44 @@
 
 void ReDefine::FinishVariables()
 {
-    VariablesOperators.clear();
+    VariablesPrototypes.clear();
     VariablesGuessing.clear();
 }
 
 //
 
-bool ReDefine::ReadConfigVariables( const std::string& sectionPrefix )
+bool ReDefine::ReadConfigVariables( const std::string& section )
 {
     FinishVariables();
 
-    std::vector<std::string> sections;
-    if( !Config->GetSections( sections ) )
+    // [VariableGuess]
+    // else if( section == sectionPrefix + "Guess" )
+    // {
+    //    std::vector<std::string> types = Config->GetStrVec( section, section );
+    //    if( !types.size() )
+    //        continue;
+    //
+    //    // type validation is part of ProcessHeaders(),
+    //    // as at this point *Defines maps might not be initialized yet,
+    //    VariablesGuessing = types;
+
+    // [Variable] //
+
+    if( !Config->IsSection( section ) )
         return true;
 
-    for( const auto& section : sections )
+    std::vector<std::string> keys;
+    if( !Config->GetSectionKeys( section, keys ) )
+        return true;
+
+    for( const auto& variable : keys )
     {
-        if( section.length() < sectionPrefix.length() )
-            continue;
-        // [VariableGuess]
-        else if( section == sectionPrefix + "Guess" )
-        {
-            std::vector<std::string> types = Config->GetStrVec( section, section );
-            if( !types.size() )
-                continue;
+        if( Config->GetStrVec( section, variable ).size() != 1 )
+            continue; // TODO warning
 
-            // type validation is part of ProcessHeaders(),
-            // as at this point *Defines maps might not be initialized yet,
-            VariablesGuessing = types;
-        }
-        // [VariableOPERATOR]
-        // see InitOperators() for valid values for OPERATOR
-        else if( section.substr( 0, sectionPrefix.length() ) == sectionPrefix )
-        {
-            const std::string opName = section.substr( sectionPrefix.length(), section.length() - sectionPrefix.length() );
-
-            // Operators map should be available at this point, if initialized correctly
-            if( !IsOperatorName( opName ) )
-            {
-                DEBUG( __FUNCTION__, "config section<%s> ignored", section.c_str() );
-                continue;
-            }
-
-            std::vector<std::string> keys;
-            if( !Config->GetSectionKeys( section, keys ) )
-            {
-                WARNING( "config section<%s> is empty", section.c_str() );
-                continue;
-            }
-
-            for( const auto& variable : keys )
-            {
-                if( Config->GetStrVec( section, variable ).size() != 1 )
-                    continue;
-
-                std::string type = Config->GetStr( section, variable );
-
-                // type validation is part of ProcessHeaders(),
-                // as at this point *Defines maps might not be initialized yet,
-                VariablesOperators[variable][opName] = type;
-            }
-        }
+        // type validation is part of ProcessHeaders(),
+        // as at this point *Defines maps might not be initialized yet
+        VariablesPrototypes[variable] = Config->GetStr( section, variable );
     }
 
     return true;

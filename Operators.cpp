@@ -52,21 +52,10 @@ std::string ReDefine::GetOperatorName( const std::string& op )
 
 //
 
-void ReDefine::ProcessOperator( const ReDefine::GenericOperatorsMap& opMap, ScriptCode& code )
+void ReDefine::ProcessOperator( const std::string& type, ScriptCode& code )
 {
-    auto itName = opMap.find( code.Name );
-    if( itName == opMap.end() )
+    if( code.Operator.empty() || !IsOperator( code.Operator ) || code.OperatorArgument.empty() )
         return;
 
-    if( !IsOperator( code.Operator ) )
-        return;
-
-    auto itOp = itName->second.find( GetOperatorName( code.Operator ) );
-    if( itOp == itName->second.end() )
-    {
-        DEBUG( nullptr, "<%s> %s <%s>", code.Name.c_str(), code.Operator.c_str(), code.OperatorArgument.c_str() );
-        return;
-    }
-
-    ProcessValue( itOp->second, code.OperatorArgument );
+    ProcessValue( type, code.OperatorArgument );
 }

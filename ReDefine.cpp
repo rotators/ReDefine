@@ -57,7 +57,7 @@ void ReDefine::SStatus::Clear()
 
 ReDefine::ReDefine() :
     Config( nullptr ),
-    EditDebug( false )
+    DebugChanges( false )
 {}
 
 ReDefine::~ReDefine()
@@ -243,62 +243,27 @@ void ReDefine::ProcessHeaders( const std::string& path )
         }
     }
 
-    GenericOperatorsMap                  validatedOperators;
-    std::map<std::string, FunctionProto> validatedFunctions;
+    std::map<std::string, std::string>   validVariables;
+    std::map<std::string, FunctionProto> validFunctions;
 
     // validate variables configuration
     // virtual ? types are not valid for variables
 
-    for( const auto& var : VariablesOperators )
+    for( const auto& var : VariablesPrototypes )
     {
-        for( const auto& opName : var.second )
+        if( !IsDefineType( var.second ) )
         {
-            if( !IsDefineType( opName.second ) )
-            {
-                WARNING( __FUNCTION__, "unknown define type<%s> : variable<%s> operatorName<%s>", opName.second.c_str(), var.first.c_str(), opName.first.c_str() );
-                continue;
-            }
-
-            LOG( "Added variable %s ... %s %s %s", TextGetLower(  opName.first ).c_str(), var.first.c_str(), GetOperator( opName.first ).c_str(), opName.second.c_str() );
-            validatedOperators[var.first][opName.first] = opName.second;
+            WARNING( __FUNCTION__, "unknown define type<%s> : variable<%s>", var.second.c_str(), var.first.c_str() );
+            continue;
         }
+
+        LOG( "Added variable ... [%s] %s", var.second.c_str(), var.first.c_str() );
+        validVariables[var.first] = var.second;
     }
 
-    for( const auto& type : VariablesGuessing )
-    {
-        if( !IsDefineType( type ) )
-        {
-            WARNING( __FUNCTION__, "unknown define type<%s> : variable guessing", type.c_str() );
-            VariablesGuessing.clear(); // zero tolerance policy
-            break;
-        }
-    }
-
-    // TODO validate
-    if( VariablesGuessing.size() )
-        LOG( "Added variable guessing ... %s", TextGetJoined( VariablesGuessing, ", " ).c_str() );
-
-    // keep valid settings only
-    VariablesOperators = validatedOperators;
-    validatedOperators.clear();
 
     // validate functions configuration
-    // virtual ? types are valid for functions arguments only
-
-    for( const auto& var : FunctionsOperators )
-    {
-        for( const auto& opName : var.second )
-        {
-            if( !IsDefineType( opName.second ) )
-            {
-                WARNING( __FUNCTION__, "unknown define type<%s> : function<%s> operatorName<%s>", opName.second.c_str(), var.first.c_str(), opName.first.c_str() );
-                continue;
-            }
-
-            LOG( "Added function %s ... %s(...) %s %s", TextGetLower(  opName.first ).c_str(), var.first.c_str(), GetOperator( opName.first ).c_str(), opName.second.c_str() );
-            validatedOperators[var.first][opName.first] = opName.second;
-        }
-    }
+    // virtual ? types are valid for functions
 
     for( const auto& func : FunctionsPrototypes )
     {
@@ -324,13 +289,26 @@ void ReDefine::ProcessHeaders( const std::string& path )
         if( !valid )
             continue;
 
-        LOG( "Added function ... [%s] %s( %s )", func.second.ReturnType.c_str(), func.first.c_str(), TextGetJoined( func.second.ArgumentsTypes, ", " ).c_str() );
-        validatedFunctions[func.first] = func.second;
+        LOG( "Added function ... [%s] %s(%s)", func.second.ReturnType.c_str(), func.first.c_str(), std::string( func.second.ArgumentsTypes.empty() ? "" : " " + TextGetJoined( func.second.ArgumentsTypes, ", " ) + " " ).c_str() );
+        validFunctions[func.first] = func.second;
     }
 
+    for( const auto& type : VariablesGuessing )
+    {
+        if( !IsDefineType( type ) )
+        {
+            WARNING( __FUNCTION__, "unknown define type<%s> : guessing", type.c_str() );
+            VariablesGuessing.clear(); // zero tolerance policy
+            break;
+        }
+    }
+
+    if( VariablesGuessing.size() )
+        LOG( "Added guessing ... %s", TextGetJoined( VariablesGuessing, ", " ).c_str() );
+
     // keep valid settings only
-    FunctionsOperators = validatedOperators;
-    FunctionsPrototypes = validatedFunctions;
+    VariablesPrototypes = validVariables;
+    FunctionsPrototypes = validFunctions;
 
     // log raw replacement
     for( const auto& from : Raw )
