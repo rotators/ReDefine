@@ -390,6 +390,48 @@ static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vec
     return code.Arguments[idx] != values[1];
 }
 
+// ? IfArgumentsEqual:INDEX,INDEX
+static bool IfArgumentsEqual( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+        return false;
+
+    unsigned int idx1;
+    if( !code.GetINDEX( __FUNCTION__, values[0], idx1 ) )
+        return false;
+
+    unsigned int idx2;
+    if( !code.GetINDEX( __FUNCTION__, values[1], idx2 ) )
+        return false;
+
+    if( idx1 == idx2 )
+    {
+        code.Parent->WARNING( __FUNCTION__, "duplicated INDEX<%u>", idx1 );
+        return false;
+    }
+
+    return code.Arguments[idx1] == code.Arguments[idx2];
+}
+
+// ? IfArgumentsSize:UINT
+static bool IfArgumentsSize( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    unsigned int size;
+    if( !code.GetUINT( __FUNCTION__, values[0], size ) )
+        return false;
+
+    return code.Arguments.size() == size;
+}
+
 // ? IfEdited
 static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
@@ -925,6 +967,21 @@ static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::
     return true;
 }
 
+// ? DoOperatorSet:STRING,STRING
+static bool DoOperatorSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsValues( __FUNCTION__, values, 2 ) )
+        return false;
+
+    code.Operator = values[0];
+    code.OperatorArgument = values[1];
+
+    return true;
+}
+
 // ? DoRestart
 static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
@@ -966,6 +1023,8 @@ void ReDefine::InitScript()
     EditIf["IfArgumentIs"] = &IfArgumentIs;
     EditIf["IfArgumentNotValue"] = &IfArgumentNotValue;
     EditIf["IfArgumentValue"] = &IfArgumentValue;
+    EditIf["IfArgumentsEqual"] = &IfArgumentsEqual;
+    EditIf["IfArgumentsSize"] = &IfArgumentsSize;
     EditIf["IfEdited"] = &IfEdited;
     EditIf["IfFileDefined"] = &IfFileDefined;
     EditIf["IfFileName"] = &IfFileName;
@@ -996,6 +1055,7 @@ void ReDefine::InitScript()
     EditDo["DoNameCount"] = &DoNameCount;
     EditDo["DoNameSet"] = &DoNameSet;
     EditDo["DoOperatorClear"] = &DoOperatorClear;
+    EditDo["DoOperatorSet"] = &DoOperatorSet;
     EditDo["DoRestart"] = &DoRestart;
     EditDo["DoVariable"] = &DoVariable;
 }
@@ -1061,6 +1121,9 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
                 for( const auto& action : Config->GetStrVec( section, name ) )
                 {
+                    if( action.empty() )
+                        continue;
+
                     // split name from arguments
                     std::vector<std::string> vals;
                     std::vector<std::string> arg = TextGetSplitted( action, ':' );
@@ -1507,12 +1570,7 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
                 run = codeUpdate.CallEditIf( condition.Name, condition.Values );
 
                 if( debug && ( (first && run) || !first ) )
-                {
-                    // if( first && run )
-                    //    changelog.push_back( std::make_pair( editString + " script code", codeUpdate.GetFullString() ) );
-
                     codeUpdate.Change( change + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
-                }
 
                 if( !run )
                     break;
@@ -1536,10 +1594,7 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
                 if( !run )
                 {
                     if( debug )
-                    {
                         codeUpdate.Change( change + log, "(ERROR)" );
-                        // codeUpdate.ChangeLog();
-                    }
 
                     WARNING( nullptr, "script edit<%s> aborted : result<%s> failed", edit.Name.c_str(), result.Name.c_str() );
 
@@ -1577,8 +1632,6 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
             }
         }     // for( const ScriptEdit& edit : it.second )
     }         // for( const auto& it : edits )
-
-    // code.ChangeLog();
 
     // push changes
     code = codeUpdate;
