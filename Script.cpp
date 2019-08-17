@@ -79,6 +79,32 @@ void ReDefine::ScriptCode::SetFullString()
 
 //
 
+bool ReDefine::ScriptCode::IsBefore( const char* caller ) const
+{
+    if( !IsFlag( SCRIPT_CODE_BEFORE ) )
+    {
+        if( caller )
+            Parent->WARNING( caller, "action can be used only in RunBefore edits" );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptCode::IsAfter( const char* caller ) const
+{
+    if( !IsFlag( SCRIPT_CODE_AFTER ) )
+    {
+        if( caller )
+            Parent->WARNING( caller, "action can be used only in RunAfter edits" );
+
+        return false;
+    }
+
+    return true;
+}
+
 bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
 {
     if( Name.empty() )
@@ -202,7 +228,7 @@ bool ReDefine::ScriptCode::GetINDEX( const char* caller, const std::string& valu
     return true;
 }
 
-bool ReDefine::ScriptCode::GetTYPE( const char* caller, const std::string& value, bool allowUnknown /* = true */ ) const
+bool ReDefine::ScriptCode::GetTYPE( const char* caller, const std::string& value, bool allowUnknown /* = false */ ) const
 {
     if( value.empty() )
     {
@@ -341,7 +367,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
 
         if( code.IsValues( nullptr, values, 3 ) )
         {
-            if( !code.GetTYPE( __FUNCTION__, values[2] ) )
+            if( code.GetTYPE( __FUNCTION__, values[2] ) )
                 type = values[2];
             else
                 return false;
@@ -483,7 +509,7 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? IfName:STRING
-static bool IfName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool IfName( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -495,13 +521,13 @@ static bool IfName(  const ReDefine::ScriptCode& code, const std::vector<std::st
 }
 
 // ? IfNotEdited
-static bool IfNotEdited(  const ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool IfNotEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
     return !code.IsFlag( ReDefine::SCRIPT_CODE_EDITED );
 }
 
 // ? IfOperator
-static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool IfOperator( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -510,7 +536,7 @@ static bool IfOperator(  const ReDefine::ScriptCode& code, const std::vector<std
 }
 
 // ? IfOperatorName:STRING
-static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool IfOperatorName( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -525,7 +551,7 @@ static bool IfOperatorName(  const ReDefine::ScriptCode& code, const std::vector
 }
 
 // ? IfOperatorValue:STRING
-static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool IfOperatorValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -539,11 +565,26 @@ static bool IfOperatorValue(  const ReDefine::ScriptCode& code, const std::vecto
     return code.OperatorArgument == values[0];
 }
 
+// ? IfReturnType:TYPE
+static bool IfReturnType( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    if( !code.GetTYPE( __FUNCTION__, values[0], true ) )
+        return false;
+
+    return code.ReturnType == values[0];
+}
+
 // ? IfVariable
 // ? IfVariable:STRING
 // ? IfVariable:STRING_1,...STRING_N
 // > IfName
-static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool IfVariable( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariable( nullptr ) )
         return false;
@@ -565,7 +606,7 @@ static bool IfVariable(  const ReDefine::ScriptCode& code, const std::vector<std
 // script edit results
 
 // ? DoArgumentCount:INDEX,STRING
-static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -583,7 +624,7 @@ static bool DoArgumentCount(  ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? DoArgumentSet:INDEX,STRING
-static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -602,7 +643,7 @@ static bool DoArgumentSet(  ReDefine::ScriptCode& code, const std::vector<std::s
 
 // ? DoArgumentSetPrefix:INDEX,STRING
 // > DoArgumentSet
-static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentSetPrefix( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -619,7 +660,7 @@ static bool DoArgumentSetPrefix(  ReDefine::ScriptCode& code, const std::vector<
 
 // ? DoArgumentSetSuffix:INDEX,STRING
 // > DoArgumentSet
-static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentSetSuffix( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -635,8 +676,11 @@ static bool DoArgumentSetSuffix(  ReDefine::ScriptCode& code, const std::vector<
 }
 
 // ? DoArgumentSetType:INDEX,TYPE
-static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentSetType( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
+    if( !code.IsBefore( __FUNCTION__ ) )
+        return false;
+
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
 
@@ -655,7 +699,7 @@ static bool DoArgumentSetType(  ReDefine::ScriptCode& code, const std::vector<st
 
 // ? DoArgumentLookup:INDEX
 // ? DoArgumentLookup:INDEX,STRING
-static bool DoArgumentLookup(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoArgumentLookup( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -721,7 +765,7 @@ static bool DoArgumentLookup(  ReDefine::ScriptCode& code, const std::vector<std
 }
 
 // ? DoArgumentsClear
-static bool DoArgumentsClear(  ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std::string>& )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -733,7 +777,7 @@ static bool DoArgumentsClear(  ReDefine::ScriptCode& code, const std::vector<std
 }
 
 // ? DoArgumentsErase:INDEX
-static bool DoArgumentsErase(  ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
+static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -874,10 +918,21 @@ static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std
     return true;
 }
 
+// ? DoFileCount:STRING
+static bool DoFileCount( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    code.Parent->Status.Process.Counters[values[0]][code.Parent->Status.Current.File]++;
+
+    return true;
+}
+
 // ? DoFunction
 // ? DoFunction:STRING
 // > DoNameSet
-static bool DoFunction(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoFunction( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     code.SetType( ReDefine::SCRIPT_CODE_FUNCTION );
 
@@ -990,11 +1045,31 @@ static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string
     return true;
 }
 
+// ? DoReturnSetType:TYPE
+static bool DoReturnSetType( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+{
+    if( !code.IsBefore( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return false;
+
+    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+        return false;
+
+    if( !code.GetTYPE( __FUNCTION__, values[0] ) )
+        return false;
+
+    code.ReturnType = values[0];
+
+    return true;
+}
+
 // ? DoVariable
 // ? DoVariable:STRING
 // > DoArgumentsClear
 // > DoNameSet
-static bool DoVariable(  ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+static bool DoVariable( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( code.IsFunction( nullptr ) )
     {
@@ -1034,6 +1109,7 @@ void ReDefine::InitScript()
     EditIf["IfOperator"] = &IfOperator;
     EditIf["IfOperatorName"] = &IfOperatorName;
     EditIf["IfOperatorValue"] = &IfOperatorValue;
+    EditIf["IfReturnType"] = &IfReturnType;
     EditIf["IfVariable"] = &IfVariable;
 
     // must start with "Do"
@@ -1050,6 +1126,7 @@ void ReDefine::InitScript()
     EditDo["DoArgumentsPushBack"] = &DoArgumentsPushBack;
     EditDo["DoArgumentsPushFront"] = &DoArgumentsPushFront;
     EditDo["DoArgumentsResize"] = &DoArgumentsResize;
+    EditDo["DoFileCount"] = &DoFileCount;
     EditDo["DoFunction"] = &DoFunction;
     EditDo["DoLogCurrentLine"] = &DoLogCurrentLine;
     EditDo["DoNameCount"] = &DoNameCount;
@@ -1057,6 +1134,7 @@ void ReDefine::InitScript()
     EditDo["DoOperatorClear"] = &DoOperatorClear;
     EditDo["DoOperatorSet"] = &DoOperatorSet;
     EditDo["DoRestart"] = &DoRestart;
+    EditDo["DoReturnSetType"] = &DoReturnSetType;
     EditDo["DoVariable"] = &DoVariable;
 }
 
@@ -1234,10 +1312,6 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
     return true;
 }
 
-// utils
-
-
-
 // processing
 
 void ReDefine::ProcessScript( const std::string& path, const std::string& filename, const bool readOnly /* = false */ )
@@ -1320,75 +1394,79 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
             TextGetVariables( line, extracted );
             TextGetFunctions( line, extracted );
 
-            for( const ScriptCode& code : extracted )
+            for( const ScriptCode& codeOld : extracted )
             {
-                ScriptCode codeUpdate = code;
-                codeUpdate.Parent = this;
-                codeUpdate.File = file;
+                ScriptCode code = codeOld;
+                code.Parent = this;
+                code.File = file;
 
                 // make sure type flag is set
-                if( !codeUpdate.IsVariable( nullptr ) && !codeUpdate.IsFunction( nullptr ) )
+                if( !code.IsVariable( nullptr ) && !code.IsFunction( nullptr ) )
                 {
-                    WARNING( __FUNCTION__, "script code<%s> ignored : type missing", codeUpdate.Name.c_str() );
+                    WARNING( __FUNCTION__, "script code<%s> ignored : type missing", code.Name.c_str() );
                     continue;
                 }
 
                 // prepare code to reflect configuration (required by some edit actions)
-                if( codeUpdate.IsVariable( nullptr ) )
+                if( code.IsVariable( nullptr ) )
                 {
-                    auto it = VariablesPrototypes.find( codeUpdate.Name );
+                    auto it = VariablesPrototypes.find( code.Name );
                     if( it != VariablesPrototypes.end() )
                     {
-                        codeUpdate.ReturnType = it->second;
+                        code.ReturnType = it->second;
                     }
                     else
                     {
-                        codeUpdate.ReturnType = "?";
+                        code.ReturnType = "?";
                     }
                 }
-                else if( codeUpdate.IsFunction( nullptr ) )
+                else if( code.IsFunction( nullptr ) )
                 {
-                    auto it = FunctionsPrototypes.find( codeUpdate.Name );
+                    auto it = FunctionsPrototypes.find( code.Name );
                     if( it != FunctionsPrototypes.end() )
                     {
-                        codeUpdate.ReturnType = it->second.ReturnType;
-                        codeUpdate.ArgumentsTypes = it->second.ArgumentsTypes;
+                        code.ReturnType = it->second.ReturnType;
+                        code.ArgumentsTypes = it->second.ArgumentsTypes;
                     }
                     else
                     {
-                        codeUpdate.ReturnType = "?";
+                        code.ReturnType = "?";
 
-                        if( !codeUpdate.Arguments.empty() )
+                        if( !code.Arguments.empty() )
                         {
-                            codeUpdate.ArgumentsTypes.resize( codeUpdate.Arguments.size() );
-                            std::fill( codeUpdate.ArgumentsTypes.begin(), codeUpdate.ArgumentsTypes.end(), "?" );
+                            code.ArgumentsTypes.resize( code.Arguments.size() );
+                            std::fill( code.ArgumentsTypes.begin(), code.ArgumentsTypes.end(), "?" );
                         }
                     }
                 }
 
-                codeUpdate.Change( "script code", codeUpdate.GetFullString() );
+                code.Change( "script code", code.GetFullString() );
 
                 // "preprocess"
-                ProcessScriptEdit( "Before", EditBefore, codeUpdate );
+                code.SetFlag( SCRIPT_CODE_BEFORE );
+                ProcessScriptEdit( EditBefore, code );
+                code.UnsetFlag( SCRIPT_CODE_BEFORE );
 
                 // "process"
-                ProcessScriptReplacements( codeUpdate );
+                ProcessScriptReplacements( code );
 
                 // "postprocess"
-                ProcessScriptEdit( "After", EditAfter, codeUpdate );
+                code.SetFlag( SCRIPT_CODE_AFTER );
+                ProcessScriptEdit( EditAfter, code );
+                code.UnsetFlag( SCRIPT_CODE_AFTER );
 
-                if( codeUpdate.Changes.size() >= 2 )
-                    codeUpdate.ChangeLog();
+                if( code.Changes.size() >= 2 )
+                    code.ChangeLog();
 
                 // update if needed
-                codeUpdate.SetFullString();
-                if( TextGetPacked( code.Full ) != TextGetPacked( codeUpdate.Full ) )
-                    line = TextGetReplaced( line, code.Full, codeUpdate.Full );
+                code.SetFullString();
+                if( TextGetPacked( codeOld.Full ) != TextGetPacked( code.Full ) )
+                    line = TextGetReplaced( line, codeOld.Full, code.Full );
 
                 // handle restart
-                if( codeUpdate.IsFlag( SCRIPT_CODE_RESTART ) )
+                if( code.IsFlag( SCRIPT_CODE_RESTART ) )
                 {
-                    codeUpdate.UnsetFlag( SCRIPT_CODE_RESTART );
+                    code.UnsetFlag( SCRIPT_CODE_RESTART );
                     restartCount++;
                     restart = true;
                 }
@@ -1548,12 +1626,13 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
     }
 }
 
-void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& code )
+void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld )
 {
     // editing must always works on backup to prevent massive screwup,
     // original code will be updated only if there's no problems with *any* condition/result function
     // that, plus (intentional) massive spam in warning log should be enough to get user's attention (yeah, i don't belive that either... :P)
-    ScriptCode codeUpdate = code;
+    ScriptCode        code = codeOld;
+    const std::string timing = code.IsFlag( SCRIPT_CODE_BEFORE ) ? "Before" : code.IsFlag( SCRIPT_CODE_AFTER ) ? "After" : "";
 
     for( const auto& it : edits )
     {
@@ -1562,16 +1641,16 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
             const bool        debug = edit.Debug ? edit.Debug : DebugChanges;
 
             bool              run = false, first = true;
-            const std::string change = "script edit<" + info + ":" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
+            const std::string change = "script edit<" +  timing + ":" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
             std::string       before, after, log;
 
             // all conditions needs to be satisfied
             for( const ScriptEdit::Action& condition: edit.Conditions )
             {
-                run = codeUpdate.CallEditIf( condition.Name, condition.Values );
+                run = code.CallEditIf( condition.Name, condition.Values );
 
                 if( debug && ( (first && run) || !first ) )
-                    codeUpdate.Change( change + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
+                    code.Change( change + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
 
                 if( !run )
                     break;
@@ -1590,12 +1669,12 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
                 if( debug )
                     log = " " + result.Name + (result.Values.size() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
-                run = codeUpdate.CallEditDo( result.Name, result.Values );
+                run = code.CallEditDo( result.Name, result.Values );
 
                 if( !run )
                 {
                     if( debug )
-                        codeUpdate.Change( change + log, "(ERROR)" );
+                        code.Change( change + log, "(ERROR)" );
 
                     WARNING( nullptr, "script edit<%s> aborted : result<%s> failed", edit.Name.c_str(), result.Name.c_str() );
 
@@ -1604,36 +1683,36 @@ void ReDefine::ProcessScriptEdit( const std::string& info, const std::map<unsign
 
 
                 if( debug )
-                    codeUpdate.Change( change + log, codeUpdate.GetFullString() );
+                    code.Change( change + log, code.GetFullString() );
 
-                codeUpdate.SetFlag( SCRIPT_CODE_EDITED );
+                code.SetFlag( SCRIPT_CODE_EDITED );
 
                 // handle restart
-                if( codeUpdate.IsFlag( SCRIPT_CODE_RESTART ) )
+                if( code.IsFlag( SCRIPT_CODE_RESTART ) )
                 {
                     // handle restart+refresh
-                    if( codeUpdate.IsFlag( SCRIPT_CODE_REFRESH ) )
+                    if( code.IsFlag( SCRIPT_CODE_REFRESH ) )
                     {
-                        codeUpdate.UnsetFlag( SCRIPT_CODE_REFRESH );
-                        ProcessScriptReplacements( codeUpdate, true );
+                        code.UnsetFlag( SCRIPT_CODE_REFRESH );
+                        ProcessScriptReplacements( code, true );
                     }
 
                     // push changes
-                    code = codeUpdate;
+                    codeOld = code;
 
                     return;
                 }
             }     // for( const ScriptEdit::Action& result : edit.Results )
 
             // handle refresh
-            if( codeUpdate.IsFlag( SCRIPT_CODE_REFRESH ) )
+            if( code.IsFlag( SCRIPT_CODE_REFRESH ) )
             {
-                codeUpdate.UnsetFlag( SCRIPT_CODE_REFRESH );
-                ProcessScriptReplacements( codeUpdate, true );
+                code.UnsetFlag( SCRIPT_CODE_REFRESH );
+                ProcessScriptReplacements( code, true );
             }
         }     // for( const ScriptEdit& edit : it.second )
     }         // for( const auto& it : edits )
 
     // push changes
-    code = codeUpdate;
+    codeOld = code;
 }

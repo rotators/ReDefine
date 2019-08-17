@@ -194,14 +194,17 @@ public:
     {
         // types
 
-        SCRIPT_CODE_VARIABLE = 0x01,
-        SCRIPT_CODE_FUNCTION = 0x02,
+        SCRIPT_CODE_RESERVED = 0x001,
+        SCRIPT_CODE_VARIABLE = 0x002,
+        SCRIPT_CODE_FUNCTION = 0x004,
 
         //
 
-        SCRIPT_CODE_EDITED   = 0x10, // set if any result function has been executed
-        SCRIPT_CODE_REFRESH  = 0x20, // set when code needs standard processing between edits
-        SCRIPT_CODE_RESTART  = 0x40  // set by DoRestart; forces restart of line processing keeping changes already made to code
+        SCRIPT_CODE_BEFORE   = 0x010, // set when processing RunBefore edits
+        SCRIPT_CODE_AFTER    = 0x020, // set when processing RunAfter edits
+        SCRIPT_CODE_EDITED   = 0x040, // set if any result function has been executed
+        SCRIPT_CODE_REFRESH  = 0x080, // set when code needs standard processing between edits
+        SCRIPT_CODE_RESTART  = 0x100  // set by DoRestart; forces restart of line processing keeping changes already made to code
     };
 
     struct ScriptCode
@@ -213,7 +216,7 @@ public:
 
         // dynamic
 
-        unsigned int             Flags;            // see ScriptCoddeFlag
+        unsigned int             Flags;            // see ScriptCodeFlag
         std::string              Full;
         std::string              Name;             // used by variables/functions
         std::string              ReturnType;       // used by variables/functions
@@ -244,6 +247,8 @@ public:
 
         // helpers
 
+        bool IsBefore( const char* caller ) const;
+        bool IsAfter( const char* caller ) const;
         bool IsVariable( const char* caller ) const;
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
@@ -299,7 +304,7 @@ public:
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
     void ProcessScriptReplacements( ScriptCode& code, bool refresh = false );
-    void ProcessScriptEdit( const std::string& info, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
+    void ProcessScriptEdit( const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
 
     //
     // Text

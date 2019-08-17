@@ -12,7 +12,7 @@ int main( int argc, char** argv )
     ReDefine* redefine = new ReDefine();
     CmdLine*  cmd = new CmdLine( argc, argv );
 
-    // most important stuff
+    // exciting stuff
     const bool readOnly = cmd->IsOption( "ro" ) || cmd->IsOption( "read" ) || cmd->IsOption( "read-only" );
 
     // called before ReDefine::Init() so it won't be visible in logfile (as it's deleted then)
@@ -27,8 +27,12 @@ int main( int argc, char** argv )
     //
     redefine->Init();
 
-    const std::string config = "ReDefine.cfg";
+    std::string       config = "ReDefine.cfg";
     const std::string section = "ReDefine";
+
+    // override configuration filename from command line
+    if( !cmd->IsOptionEmpty( "config" ) )
+        config = cmd->GetStr( "config" );
 
     //
     // load config

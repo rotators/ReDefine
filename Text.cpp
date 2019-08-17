@@ -353,10 +353,13 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                 }
 
                 // detect operator argument end
-                if( ch == ' ' && text.substr( t + 1, 4 ) == "then" ) // unsafe
+                if( ch == ' ' )
                 {
-                    full = text.substr( funcStart, funcLen );
-                    break;
+                    if( text.substr( t + 1, 4 ) == "then" || text.substr( t + 1, 2 ) == "or" ) // unsafe
+                    {
+                        full = text.substr( funcStart, funcLen );
+                        break;
+                    }
                 }
 
                 opArg += ch;
