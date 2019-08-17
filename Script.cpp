@@ -1497,6 +1497,7 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
             if( it != FunctionsPrototypes.end() )
             {
                 code.ReturnType = it->second.ReturnType;
+                code.ArgumentsTypes = it->second.ArgumentsTypes;
             }
         }
     }
