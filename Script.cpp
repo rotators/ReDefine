@@ -3,6 +3,9 @@
 #include "FOClassic/Ini.h"
 
 #include "ReDefine.h"
+#if HAVE_PARSER
+# include "Parser.h"
+#endif
 
 ReDefine::ScriptCode::ScriptCode( const unsigned int& flags /* = 0 */ ) :
     Parent( nullptr ),
@@ -1149,7 +1152,7 @@ void ReDefine::FinishScript( bool finishCallbacks /* = true */ )
     EditBefore.clear();
     EditAfter.clear();
 
-    DebugChanges = false;
+    DebugChanges = UseParser = false;
 }
 
 // reading
@@ -1319,6 +1322,23 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
     std::vector<std::string> lines;
     if( !ReadFile( TextGetFilename( path, filename ), lines ) )
         return;
+
+    #if defined (HAVE_PARSER)
+    if( UseParser )
+    {
+        Parser            parser;
+        std::vector<char> bytes;
+        if( !ReadFile( TextGetFilename( path, filename ), bytes ) )
+            return;
+        parser.Log.Save = true;
+        parser.Parse( bytes );
+
+        for( const auto& line : parser.Log.Saved )
+        {
+            DEBUG( filename.c_str(), "%s%s", std::string( line.first * 2, ' ' ).c_str(), line.second.c_str() );
+        }
+    }
+    #endif
 
     Status.Process.Files++;
     Status.Current.Clear();

@@ -57,7 +57,8 @@ void ReDefine::SStatus::Clear()
 
 ReDefine::ReDefine() :
     Config( nullptr ),
-    DebugChanges( false )
+    DebugChanges( false ),
+    UseParser( false )
 {}
 
 ReDefine::~ReDefine()

@@ -33,6 +33,16 @@ target_sources( ReDefine
 		FOClassic/Ini.h
 )
 
+if( EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.cpp" AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.h" )
+	target_sources( ReDefine
+		PUBLIC
+			${CMAKE_CURRENT_LIST_DIR}/Parser.h
+		PRIVATE
+			Parser.cpp
+	)
+    target_compile_definitions( ReDefine PRIVATE HAVE_PARSER )
+endif()
+
 if( MSVC )
 	set( pdb "ReDefine.pdb" )
 	set( pdb_public "ReDefine.pdb.PUBLIC" )

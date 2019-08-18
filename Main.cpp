@@ -46,7 +46,9 @@ int main( int argc, char** argv )
         // read directories configuration
         std::string headers = redefine->Config->GetStr( section, "HeadersDir" );
         std::string scripts = redefine->Config->GetStr( section, "ScriptsDir" );
+
         bool        debugChanges = redefine->Config->GetBool( section, "DebugChanges", false );
+        bool        parser = redefine->Config->GetBool( section, "Parser", false );
 
         // override settings from command line
         if( !cmd->IsOptionEmpty( "headers" ) )
@@ -55,6 +57,8 @@ int main( int argc, char** argv )
             scripts = cmd->GetStr( "scripts" );
         if( cmd->IsOption( "debug-changes" ) )
             debugChanges = true;
+        if( cmd->IsOption( "parser" ) )
+            parser = true;
 
         if( headers.empty() )
         {
@@ -83,6 +87,7 @@ int main( int argc, char** argv )
 
             // additional tuning
             redefine->DebugChanges = debugChanges;
+            redefine->UseParser = parser;
 
             // process headers
             //

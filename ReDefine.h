@@ -5,7 +5,7 @@
 #include <map>
 #include <regex>
 #include <string>
-#include <tuple>
+#include <utility>
 #include <vector>
 
 class Ini;
@@ -293,6 +293,7 @@ public:
     std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
 
     bool                                            DebugChanges;
+    bool                                            UseParser;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );
