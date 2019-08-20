@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 
 #include "FOClassic/Ini.h"
@@ -1330,12 +1331,25 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         std::vector<char> bytes;
         if( !ReadFile( TextGetFilename( path, filename ), bytes ) )
             return;
-        parser.Log.Save = true;
-        parser.Parse( bytes );
 
-        for( const auto& line : parser.Log.Saved )
+        parser.Log.Enabled = true;
+        parser.Log.Cache = true;
+
+        auto start = std::chrono::system_clock::now();
+        bool result = parser.Parse( filename, bytes );
+        auto end = std::chrono::system_clock::now();
+
+        DEBUG( filename.c_str(), "Parse() %ums", std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() );
+
+        if( !result )
         {
-            DEBUG( filename.c_str(), "%s%s", std::string( line.first * 2, ' ' ).c_str(), line.second.c_str() );
+            for( const auto& line : parser.Log.Cached )
+            {
+                // if( line.second.front() == '<' )
+                //    continue;
+
+                DEBUG( filename.c_str(), "%s%s", std::string( line.first * 2, ' ' ).c_str(), line.second.c_str() );
+            }
         }
     }
     #endif

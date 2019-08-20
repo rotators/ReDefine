@@ -83,7 +83,7 @@ public:
     void Finish();
 
     bool ReadFile( const std::string& filename, std::vector<std::string>& lines );
-    bool ReadFile( const std::string& filename, std::vector<char>& letters );
+    bool ReadFile( const std::string& filename, std::vector<char>& data );
     bool ReadConfig( const std::string& defines, const std::string& variable_prefix, const std::string& function_prefix, const std::string& raw, const std::string& script );
 
     void ProcessHeaders( const std::string& path );

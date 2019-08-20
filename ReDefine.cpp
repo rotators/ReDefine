@@ -150,9 +150,9 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
     return result;
 }
 
-bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& letters )
+bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
 {
-    letters.clear();
+    data.clear();
 
     const std::string file = TextGetReplaced( filename, "\\", "/" );
     if( !std_filesystem::exists( file ) )
@@ -180,8 +180,8 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& letters
         else
             size -= 3;
 
-        letters.resize( size );
-        fstream.read( &letters[0], size );
+        data.resize( size );
+        fstream.read( &data[0], size );
     }
     else
         WARNING( nullptr, "cannot read file<%s>", file.c_str() );

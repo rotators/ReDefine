@@ -397,6 +397,12 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
             opArg.clear();
         }
 
+        if( op.length() && opArg.length() && opArg.back() == '\\' )
+        {
+            full = full.substr( 0, funcArgsLen );
+            op.clear();
+            opArg.clear();
+        }
 
         // check if function looks like, well, a function
         static const bool funcDebug = false;
