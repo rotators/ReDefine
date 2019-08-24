@@ -1327,21 +1327,80 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
     #if defined (HAVE_PARSER)
     if( UseParser )
     {
-        Parser            parser;
-        std::vector<char> bytes;
-        if( !ReadFile( TextGetFilename( path, filename ), bytes ) )
-            return;
+        class Loader : public Parser::FileLoader
+        {
+public:
+            ReDefine*                                Parent;
+            std::string                              Path;
 
+            std::map<std::string, std::vector<char>> DataMap;
+
+            Loader( ReDefine* parent, const std::string& path ) : FileLoader(), Parent( parent ), Path( path )
+            {
+                Parent->DEBUG( nullptr, "Loader init" );
+            }
+            virtual ~Loader()
+            {
+                Parent->DEBUG( nullptr, "Loader finish" );
+            }
+
+            virtual bool Load( const std::string& filename, std::vector<char>& data ) override
+            {
+                auto it = DataMap.find( filename );
+                if( it != DataMap.end() )
+                {
+                    data = it->second;
+                    return true;
+                }
+                else if( Parent->ReadFile( Parent->TextGetFilename( Path, filename ), data ) )
+                {
+                    DataMap[filename] = data;
+                    return true;
+                }
+
+                return false;
+            };
+        };
+
+        static Loader* loader = new Loader( this, path );
+
+        Parser         parser;
         parser.Log.Enabled = true;
         parser.Log.Cache = true;
+        parser.Loader = loader;
 
-        auto start = std::chrono::system_clock::now();
-        bool result = parser.Parse( filename, bytes );
+        Parser::File file;
+
+        // show time!
+        auto              read = std::chrono::system_clock::now();
+        std::vector<char> data;
+        if( !ReadFile( TextGetFilename( path, filename ), data ) )
+            return;
+
+        auto explode = std::chrono::system_clock::now();
+        file.Exploded = parser.Explode( filename, data );
+
+        auto tokenize = std::chrono::system_clock::now();
+        file.Tokenized = parser.Tokenize( file.Exploded );
+
+        auto preprocess = std::chrono::system_clock::now();
+        bool resultPP = parser.Preprocess( file.Tokenized, file.Preprocessed, file.Defines );
+
+        auto parse = std::chrono::system_clock::now();
+        bool resultP = parser.Parse( file.Tokenized, file.GlobalScope, file.Defines );
+
         auto end = std::chrono::system_clock::now();
 
-        DEBUG( filename.c_str(), "Parse() %ums", std::chrono::duration_cast<std::chrono::milliseconds>( end - start ).count() );
+        DEBUG( filename.c_str(), "Read(%u) Explode(%u) Tokenize(%u) Preprocess(%u) Parse(%u) Total %ums",
+               /* Read */ std::chrono::duration_cast<std::chrono::milliseconds>( explode - read ).count(),
+               /* Explode */ std::chrono::duration_cast<std::chrono::milliseconds>( tokenize - explode ).count(),
+               /* Tokenize */ std::chrono::duration_cast<std::chrono::milliseconds>( preprocess - tokenize ).count(),
+               /* Preprocess */ std::chrono::duration_cast<std::chrono::milliseconds>( parse - preprocess ).count(),
+               /* Parse */ std::chrono::duration_cast<std::chrono::milliseconds>( end - parse ).count(),
+               /* Total */ std::chrono::duration_cast<std::chrono::milliseconds>( end - read ).count()
+               );
 
-        if( !result )
+        if( !resultPP || !resultP )
         {
             for( const auto& line : parser.Log.Cached )
             {
@@ -1386,9 +1445,18 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
             content += newline;
             continue;
         }
+
+        line.erase( line.find_last_not_of( "\t " ) + 1 );
+
         // skip fully commented
-        else if( TextIsComment( line ) )
+        if( TextIsComment( line ) )
         {
+            content += line + newline;
+            continue;
+        }
+        else if( line.find( "//ReDefine::IgnoreLine//" ) != std::string::npos || line.find( "/*ReDefine::IgnoreLine*/" ) != std::string::npos )
+        {
+            // DEBUG( nullptr, "SKIP" );
             content += line + newline;
             continue;
         }
@@ -1562,7 +1630,7 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
 
     if( updateFile )
     {
-        std::size_t pos = content.find_last_not_of( newline + "\t" );
+        std::size_t pos = content.find_last_not_of( newline + "\t " );
         if( pos != std::string::npos )
         {
             content.erase( ++pos );
