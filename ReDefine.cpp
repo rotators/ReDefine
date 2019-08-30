@@ -230,17 +230,43 @@ void ReDefine::ProcessHeaders( const std::string& path )
     // otherwise, use ProgramDefines
     for( const auto& itProg : programDefines )
     {
-        auto itRegular = RegularDefines.find( itProg.first );
-        bool is = IsRegularDefineType( itProg.first );
+        std::string            type = itProg.first, group;
+        std::string::size_type pos = type.find_first_of( ":" );
+        if( pos != std::string::npos )
+        {
+            group = type.substr( pos + 1 );
+            type.erase( pos );
+        }
+
+        auto itRegular = RegularDefines.find( type );
+        bool isRegular = IsRegularDefineType( type );
+
+        if( !isRegular && !group.empty() )
+        {
+            auto itVirtual = VirtualDefines.find( group );
+            if( itVirtual != VirtualDefines.end() )
+            {
+                if( std::find( itVirtual->second.begin(), itVirtual->second.end(), type ) == itVirtual->second.end() )
+                {
+                    LOG( "Added %s +> %s", type.c_str(), group.c_str() ); // existing
+                    itVirtual->second.push_back( type );
+                }
+            }
+            else
+            {
+                LOG( "Added %s +> %s", type.c_str(), group.c_str() ); // new
+                VirtualDefines[group].push_back( type );
+            }
+        }
 
         for( const auto& itVal : itProg.second )
         {
-            if( is )
+            if( isRegular )
                 itRegular->second[itVal.first] = itVal.second;
             else
-                ProgramDefines[itProg.first][itVal.first] = itVal.second;
+                ProgramDefines[type][itVal.first] = itVal.second;
 
-            LOG( "Added %s define ... %s = %d", itProg.first.c_str(), itVal.second.c_str(), itVal.first );
+            LOG( "Added %s define ... %s = %d", type.c_str(), itVal.second.c_str(), itVal.first );
         }
     }
 
