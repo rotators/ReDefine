@@ -1164,10 +1164,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
     std::vector<std::string> sections;
     if( !Config->GetSections( sections ) )
-    {
-        WARNING( __FUNCTION__, "config is empty (?)" );
         return false;
-    }
 
     for( const auto& section : sections )
     {
@@ -1185,10 +1182,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
             std::vector<std::string> keys;
             if( !Config->GetSectionKeys( section, keys, true ) )
-            {
-                WARNING( __FUNCTION__, "config section<%s> is empty", section.c_str() );
-                return true;
-            }
+                continue;
 
             for( const auto& name : keys )
             {
@@ -1647,7 +1641,7 @@ public:
         }
         else
         {
-            WARNING( __FUNCTION__, "cannot write file<%s>", TextGetFilename( path, filename ) );
+            WARNING( __FUNCTION__, "cannot write file<%s>", TextGetFilename( path, filename ).c_str() );
 
             // revert changes counter
             Status.Process.FilesChanges--;
