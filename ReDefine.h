@@ -253,7 +253,7 @@ public:
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
         bool IsVariableOrFunction( const char* caller ) const;
-        bool IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const;
+        bool IsValues( const char* caller, const std::vector<std::string>& values, const unsigned int& count ) const;
 
         bool GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const;
         bool GetTYPE( const char* caller, const std::string& value, bool allowUnknown = false ) const;

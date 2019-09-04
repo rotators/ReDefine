@@ -188,7 +188,7 @@ bool ReDefine::ScriptCode::IsVariableOrFunction( const char* caller ) const
     return true;
 }
 
-bool ReDefine::ScriptCode::IsValues( const char* caller, const std::vector<std::string>& values, const uint& count ) const
+bool ReDefine::ScriptCode::IsValues( const char* caller, const std::vector<std::string>& values, const unsigned int& count ) const
 {
     if( values.size() < count )
     {
