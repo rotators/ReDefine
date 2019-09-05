@@ -142,7 +142,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
         std::string line;
         while( !fstream.eof() )
         {
-            getline( fstream, line );
+            std::getline( fstream, line );
 
             line.erase( std::remove( line.begin(), line.end(), '\r' ), line.end() );
             line.erase( std::remove( line.begin(), line.end(), '\n' ), line.end() );
