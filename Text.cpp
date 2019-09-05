@@ -1,7 +1,7 @@
 #include <climits>
 #include <cerrno>
 #include <cstdlib>
-#include <fstream>
+#include <sstream>
 
 #if defined (HAVE_FILESYSTEM)
 # include <filesystem>

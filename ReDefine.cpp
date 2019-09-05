@@ -168,7 +168,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
     }
 
     // don't waste time on empty files
-    std::size_t size = std_filesystem::file_size( file );
+    std::uintmax_t size = std_filesystem::file_size( file );
     if( size == 0 )
         return true;
 
