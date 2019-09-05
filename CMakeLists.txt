@@ -47,10 +47,10 @@ if( MSVC )
 	set( pdb "ReDefine.pdb" )
 	set( pdb_public "ReDefine.pdb.PUBLIC" )
 
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_OPTIONS "/Zi " )
+	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_FLAGS "/Zi " )
 	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/DEBUG /PDBSTRIPPED:$(ConfigurationName)/${pdb_public} /PDBALTPATH:${pdb} " )
 
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_OPTIONS "/MT " )
+	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_FLAGS "/MT " )
 	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/OPT:REF " )
 else()
 	set(CMAKE_BUILD_TYPE RelWithDebInfo)
