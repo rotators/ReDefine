@@ -1632,7 +1632,7 @@ public:
         }
 
         std::ofstream file;
-        file.open( TextGetFilename( path, filename ), std::ios::out );
+        file.open( TextGetFilename( path, filename ), std::ios::out | std::ios::binary );
 
         if( file.is_open() )
         {
