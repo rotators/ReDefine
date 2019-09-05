@@ -47,7 +47,7 @@ build_script:
 
 after_build:
  - sh:  7za a ReDefine.zip ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
- - cmd: 7za a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
+ - cmd: 7z  a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
 
 artifacts:
  - path: ReDefine.zip
