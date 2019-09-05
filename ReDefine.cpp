@@ -380,7 +380,7 @@ void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* =
         if( !std_filesystem::is_regular_file( file ) ) // TODO? symlinks
             continue;
 
-        if( TextGetLower( file.path().extension() ) != ".ssl" )
+        if( TextGetLower( file.path().extension().string() ) != ".ssl" )
             continue;
 
         scripts.push_back( file.path().string().substr( path.length(), file.path().string().length() - path.length() ) );
