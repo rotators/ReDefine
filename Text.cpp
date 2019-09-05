@@ -243,11 +243,11 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         const std::string        func = it->str( 1 );
         std::string              full, arg, op, opArg;
         std::vector<std::string> args;
-        unsigned int             stage = 0, funcStart = it->position(), funcLen = func.length() + 1, funcArgsLen = 0;
+        size_t                   stage = 0, funcStart = it->position(), funcLen = func.length() + 1, funcArgsLen = 0;
         int                      balance = 1;
         bool                     quote = false, quoteFound = false;
 
-        for( unsigned int t = funcStart + funcLen, tLen = text.length(); t < tLen; t++, funcLen++ )
+        for( size_t t = funcStart + funcLen, tLen = text.length(); t < tLen; t++, funcLen++ )
         {
             const char ch = text[t];
 

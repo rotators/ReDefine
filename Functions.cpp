@@ -47,8 +47,8 @@ bool ReDefine::ReadConfigFunctions( const std::string& section )
 void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
 {
     // make sure function is preconfigured properly
-    std::string  badArgs;
-    unsigned int found = 0, expected = 0;
+    std::string badArgs;
+    size_t      found = 0, expected = 0;
 
     // known functions
     auto it = FunctionsPrototypes.find( function.Name );
@@ -89,7 +89,7 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
     if( !function.Arguments.size() )
         return;
 
-    for( unsigned int idx = 0, len = function.Arguments.size(); idx < len; idx++ )
+    for( size_t idx = 0, len = function.Arguments.size(); idx < len; idx++ )
     {
         if( function.ArgumentsTypes[idx].empty() ) // can happen by using DoArgumentsResize without DoArgumentChangeType or other edit combinations
         {

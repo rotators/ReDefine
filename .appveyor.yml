@@ -46,6 +46,7 @@ build_script:
  - cmake -P Build.cmake
 
 after_build:
+ - sh: file ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
  - sh:  7za a ReDefine.zip ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
  - cmd: 7z  a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
 

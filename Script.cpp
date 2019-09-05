@@ -315,7 +315,7 @@ void ReDefine::ScriptCode::Change( const std::string& left, const std::string& r
 
 void ReDefine::ScriptCode::ChangeLog()
 {
-    unsigned int max = 0;
+    size_t max = 0;
     for( const auto& change : Changes )
     {
         if( change.first.length() > max )
