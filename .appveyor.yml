@@ -1,0 +1,53 @@
+##
+## AppVeyor
+## https://www.appveyor.com/
+##
+
+version: "{build}"
+
+image:
+ - Ubuntu
+ - Visual Studio 2017
+
+platform:
+ - x32
+ - x64
+
+#matrix:
+# allow_failures:
+#  - image: Ubuntu
+#  - image: Visual Studio 2017
+
+for:
+ - matrix:
+    only:
+     - image: Ubuntu
+     - image: Ubuntu1804
+   clone_folder: /ReDefine
+ - matrix:
+    only:
+     - image: Visual Studio 2017
+   clone_folder: C:\ReDefine
+
+#cache:
+# - Cache -> CMakeLists.txt, Build.cmake
+
+init:
+ - sh: if [ "${PLATFORM}" == "x32" ]; then arch=i386; else arch=amd64; fi
+
+install:
+ - git submodule update --init --recursive
+ - sh: sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+ - sh: sudo apt-get update
+ - sh: sudo apt-get install -y gcc-multilib g++-multilib
+ - sh: hash -r
+
+build_script:
+ - cmake -P Build.cmake
+
+after_build:
+ - sh:  7za a ReDefine.zip ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
+ - cmd: 7za a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
+
+artifacts:
+ - path: ReDefine.zip
