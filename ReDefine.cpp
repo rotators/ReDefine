@@ -3,13 +3,15 @@
 
 #if defined (HAVE_FILESYSTEM)
 # include <filesystem>
-# if defined (_MSC_VER) && _MSC_VER >= 1700
+# if defined (_MSC_VER)
 #  if _MSC_VER >= 1914 && _MSVC_LANG >= 201703L
 namespace std_filesystem = std::filesystem;
 #  elif _MSC_VER >= 1910
 namespace std_filesystem = std::experimental::filesystem;
-#  else
+#  elif _MSC_VER >= 1700
 namespace std_filesystem = std::tr2::sys;
+#  else
+#   error "std::filesystem"
 #  endif
 # else
 namespace std_filesystem = std::filesystem;
@@ -63,6 +65,9 @@ void ReDefine::SStatus::Clear()
 
 ReDefine::ReDefine() :
     Config( nullptr ),
+    LogFile( "ReDefine.log" ),
+    LogWarning( "ReDefine.WARNING.log" ),
+    LogDebug( "ReDefine.DEBUG.log" ),
     DebugChanges( false ),
     UseParser( false )
 {}
@@ -79,11 +84,6 @@ void ReDefine::Init()
     // create config
     Config = new Ini();
     Config->KeepKeysOrder = true;
-
-    // remove logfiles from previous run
-    std::remove( "ReDefine.DEBUG.log" );
-    std::remove( "ReDefine.WARNING.log" );
-    std::remove( "ReDefine.log" );
 
     // extern initialization
     InitOperators();
@@ -107,6 +107,20 @@ void ReDefine::Finish()
     FinishRaw();
     FinishScript();
     FinishVariables();
+}
+
+void ReDefine::RemoveLogs()
+{
+    // remove logfiles from previous run
+
+    if( !LogFile.empty() && std_filesystem::exists( LogFile ) )
+        std_filesystem::remove( LogFile );
+
+    if( !LogWarning.empty() && std_filesystem::exists( LogWarning ) )
+        std_filesystem::remove( LogWarning );
+
+    if( !LogDebug.empty() && std_filesystem::exists( LogDebug ) )
+        std_filesystem::remove( LogDebug );
 }
 
 // files reading

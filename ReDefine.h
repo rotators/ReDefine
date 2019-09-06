@@ -35,7 +35,11 @@ public:
     // ReDefine
     //
 
-    Ini* Config;
+    Ini*        Config;
+
+    std::string LogFile;
+    std::string LogWarning;
+    std::string LogDebug;
 
     struct SStatus
     {
@@ -81,6 +85,7 @@ public:
 
     void Init();
     void Finish();
+    void RemoveLogs();
 
     bool ReadFile( const std::string& filename, std::vector<std::string>& lines );
     bool ReadFile( const std::string& filename, std::vector<char>& data );
@@ -152,6 +157,7 @@ public:
     void WARNING( const char* caller, const char* format, ... );
     void ILOG( const char* format, ... );
     void LOG( const char* format, ... );
+    void SHOW( const char* format, ... );
 
     //
     // Operators

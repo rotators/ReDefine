@@ -5,13 +5,15 @@
 
 #if defined (HAVE_FILESYSTEM)
 # include <filesystem>
-# if defined (_MSC_VER) && _MSC_VER >= 1700
+# if defined (_MSC_VER)
 #  if _MSC_VER >= 1914 && _MSVC_LANG >= 201703L
 namespace std_filesystem = std::filesystem;
 #  elif _MSC_VER >= 1910
 namespace std_filesystem = std::experimental::filesystem;
-#  else
+#  elif _MSC_VER >= 1700
 namespace std_filesystem = std::tr2::sys;
+#  else
+#   error "std::filesystem"
 #  endif
 # else
 namespace std_filesystem = std::filesystem;

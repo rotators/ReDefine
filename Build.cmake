@@ -105,6 +105,7 @@ endfunction()
 #> ReDefine <#
 
 if( DEFINED ENV{CI} )
+	# AppVeyor
 	if( DEFINED ENV{APPVEYOR_BUILD_WORKER_IMAGE} )
 		if( UNIX AND "$ENV{PLATFORM}" STREQUAL "x32" )
 			set( BUILD_TOOL "Linux32" )

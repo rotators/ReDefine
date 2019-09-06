@@ -14,22 +14,15 @@ static unsigned int StrLength( const char* str )
     return (unsigned int)(str - str_);
 }
 
-static void Print( ReDefine* redefine, const char* prefix, const char* caller, const char* format, va_list& args, bool lineInfo )
+static void Print( ReDefine* redefine, const std::string& log, const char* prefix, const char* caller, const char* format, va_list& args, bool lineInfo )
 {
     std::string full;
-    std::string log = "ReDefine";
 
-    // prefix is part of message and logfile name
     if( prefix )
     {
         full += std::string( prefix );
         full += " ";
-
-        log += ".";
-        log += std::string( prefix );
     }
-
-    log += ".log";
 
     // add caller function
     if( caller )
@@ -81,14 +74,17 @@ static void Print( ReDefine* redefine, const char* prefix, const char* caller, c
     std::printf( "%s\n", full.c_str() );
 
     // ...and save
-    std::ofstream flog;
-    flog.open( log, std::ios::out | std::ios::app );
-    if( flog.is_open() )
+    if( !log.empty() )
     {
-        flog << full;
-        flog << std::endl;
+        std::ofstream flog;
+        flog.open( log, std::ios::out | std::ios::app );
+        if( flog.is_open() )
+        {
+            flog << full;
+            flog << std::endl;
 
-        flog.close();
+            flog.close();
+        }
     }
 }
 
@@ -96,7 +92,7 @@ void ReDefine::DEBUG( const char* caller, const char* format, ... )
 {
     va_list list;
     va_start( list, format );
-    Print( this, "DEBUG", caller, format, list, true );
+    Print( this, LogDebug, "DEBUG", caller, format, list, true );
     va_end( list );
 }
 
@@ -104,7 +100,7 @@ void ReDefine::WARNING( const char* caller, const char* format, ... )
 {
     va_list list;
     va_start( list, format );
-    Print( this, "WARNING", caller, format, list, true );
+    Print( this, LogWarning, "WARNING", caller, format, list, true );
     va_end( list );
 }
 
@@ -112,7 +108,7 @@ void ReDefine::ILOG( const char* format, ... )
 {
     va_list list;
     va_start( list, format );
-    Print( this, nullptr, nullptr, format, list, true );
+    Print( this, LogFile, nullptr, nullptr, format, list, true );
     va_end( list );
 }
 
@@ -120,6 +116,14 @@ void ReDefine::LOG( const char* format, ... )
 {
     va_list list;
     va_start( list, format );
-    Print( this, nullptr, nullptr, format, list, false );
+    Print( this, LogFile, nullptr, nullptr, format, list, false );
+    va_end( list );
+}
+
+void ReDefine::SHOW( const char* format, ... )
+{
+    va_list list;
+    va_start( list, format );
+    Print( this, std::string(), nullptr, nullptr, format, list, false );
     va_end( list );
 }

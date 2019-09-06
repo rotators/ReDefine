@@ -15,14 +15,13 @@ int main( int argc, char** argv )
     // exciting stuff
     const bool readOnly = cmd->IsOption( "ro" ) || cmd->IsOption( "read" ) || cmd->IsOption( "read-only" );
 
-    // called before ReDefine::Init() so it won't be visible in logfile (as it's deleted then)
-    redefine->LOG( "ReDefine <3 FO1@2" );
-    redefine->LOG( " " );
+    redefine->SHOW( "ReDefine <3 FO1@2" );
+    redefine->SHOW( " " );
 
     //
     // Init() / Finish() can be called at any point to completely reset object
     //
-    // Init() recreates all internals and removes all log files
+    // Init() recreates all internals
     // Finish() does cleanup only; called by Init() and destructor
     //
     redefine->Init();
@@ -43,6 +42,23 @@ int main( int argc, char** argv )
     //
     if( redefine->Config->LoadFile( config ) )
     {
+        // read logs configuration
+        // empty Log* disables saving to file
+        redefine->LogFile = redefine->Config->GetStr( section, "LogFile", redefine->LogFile );
+        redefine->LogWarning = redefine->Config->GetStr( section, "LogWarning", redefine->LogWarning );
+        redefine->LogDebug = redefine->Config->GetStr( section, "LogDebug", redefine->LogDebug );
+
+        // override logs configuration from command line
+        if( !cmd->IsOptionEmpty( "log-file" ) )
+            redefine->LogFile = cmd->GetStr( "log-file", redefine->LogFile );
+        if( !cmd->IsOptionEmpty( "log-warning" ) )
+            redefine->LogWarning = cmd->GetStr( "log-warning", redefine->LogWarning );
+        if( !cmd->IsOptionEmpty( "log-debug" ) )
+            redefine->LogDebug = cmd->GetStr( "log-debug", redefine->LogDebug );
+
+        // remove old logfiles
+        redefine->RemoveLogs();
+
         // read directories configuration
         std::string headers = redefine->Config->GetStr( section, "HeadersDir" );
         std::string scripts = redefine->Config->GetStr( section, "ScriptsDir" );

@@ -2,6 +2,15 @@
 ## AppVeyor
 ## https://www.appveyor.com/
 ##
+## ReDefine
+## https://github.com/rotators/ReDefine/
+##
+## Nigtly builds
+## Linux, 32bit   https://ci.appveyor.com/api/projects/rotators/ReDefine/artifacts/ReDefine.zip?job=Image:%20Ubuntu;%20Platform:%20x32&branch=master&pr=false
+## Linux, 64bit   https://ci.appveyor.com/api/projects/rotators/ReDefine/artifacts/ReDefine.zip?job=Image:%20Ubuntu;%20Platform:%20x64&branch=master&pr=false
+## Windows, 32bit https://ci.appveyor.com/api/projects/rotators/ReDefine/artifacts/ReDefine.zip?job=Image:%20Visual%20Studio%202017;%20Platform:%20x32&branch=master&pr=false
+## Windows, 64bit https://ci.appveyor.com/api/projects/rotators/ReDefine/artifacts/ReDefine.zip?job=Image:%20Visual%20Studio%202017;%20Platform:%20x64&branch=master&pr=false
+##
 
 version: "{build}"
 
