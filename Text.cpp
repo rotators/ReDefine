@@ -3,29 +3,8 @@
 #include <cstdlib>
 #include <sstream>
 
-#if defined (HAVE_FILESYSTEM)
-# include <filesystem>
-# if defined (_MSC_VER)
-#  if _MSC_VER >= 1914 && _MSVC_LANG >= 201703L
-namespace std_filesystem = std::filesystem;
-#  elif _MSC_VER >= 1910
-namespace std_filesystem = std::experimental::filesystem;
-#  elif _MSC_VER >= 1700
-namespace std_filesystem = std::tr2::sys;
-#  else
-#   error "std::filesystem"
-#  endif
-# else
-namespace std_filesystem = std::filesystem;
-# endif
-#elif defined (HAVE_EXPERIMENTAL_FILESYSTEM)
-# include <experimental/filesystem>
-namespace std_filesystem = std::experimental::filesystem;
-#else
-# error "std::filesystem"
-#endif
-
 #include "ReDefine.h"
+#include "StdFilesystem.h"
 
 static std::regex IsBlank( "^[\\t\\ ]*$" );
 static std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
@@ -293,6 +272,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                 // update arguments list
                 else if( ch == ',' && balance == 1 )
                 {
+                    // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
                     args.push_back( TextGetTrimmed( arg ) );
                     arg.clear();
                     continue;
@@ -377,7 +357,10 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
 
         // add last argument (if any)
         if( arg.length() )
+        {
+            // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
             args.push_back( TextGetTrimmed( arg ) );
+        }
 
         // validate quotes detection
         if( !quoteFound && std::count( full.begin(), full.end(), '"' ) )

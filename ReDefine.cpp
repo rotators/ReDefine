@@ -1,31 +1,10 @@
 #include <algorithm>
 #include <fstream>
 
-#if defined (HAVE_FILESYSTEM)
-# include <filesystem>
-# if defined (_MSC_VER)
-#  if _MSC_VER >= 1914 && _MSVC_LANG >= 201703L
-namespace std_filesystem = std::filesystem;
-#  elif _MSC_VER >= 1910
-namespace std_filesystem = std::experimental::filesystem;
-#  elif _MSC_VER >= 1700
-namespace std_filesystem = std::tr2::sys;
-#  else
-#   error "std::filesystem"
-#  endif
-# else
-namespace std_filesystem = std::filesystem;
-# endif
-#elif defined (HAVE_EXPERIMENTAL_FILESYSTEM)
-# include <experimental/filesystem>
-namespace std_filesystem = std::experimental::filesystem;
-#else
-# error "std::filesystem"
-#endif
-
 #include "FOClassic/Ini.h"
 
 #include "ReDefine.h"
+#include "StdFilesystem.h"
 
 //
 
@@ -237,9 +216,21 @@ void ReDefine::ProcessHeaders( const std::string& path )
     DefinesMap programDefines = ProgramDefines;
     ProgramDefines.clear();
 
-    for( const auto& header : Headers )
+    // don't give up if there's something wrong with path - defines can be added via config, and replacements might still work
+    // additionally, it allows config-only setup, which might be a good idea in case main application wants to parse headers on its own and add them to config
+    // (which isn't such a bad idea - current headers reader is quite bad, as it doesn't understand /* long comments */ yet)
+    if( path.empty() )
+        WARNING( __FUNCTION__, "headers path is empty" );
+    else if( !std_filesystem::exists( path ) )
+        WARNING( __FUNCTION__, "headers path<%s> does not exists", path.c_str() );
+    else if( !std_filesystem::is_directory( path ) )
+        WARNING( __FUNCTION__, "headers path<%s> is not a directory", path.c_str() );
+    else
     {
-        ProcessHeader( path, header );
+        for( const auto& header : Headers )
+        {
+            ProcessHeader( path, header );
+        }
     }
 
     // won't need that until next ReadConfig()/ReadConfigDefines() call
@@ -384,6 +375,22 @@ void ReDefine::ProcessHeaders( const std::string& path )
 
 void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* = false */ )
 {
+    if( path.empty() )
+    {
+        WARNING( __FUNCTION__, "scripts path is empty" );
+        return;
+    }
+    else if( !std_filesystem::exists( path ) )
+    {
+        WARNING( __FUNCTION__, "scripts path<%s> does not exists", path.c_str() );
+        return;
+    }
+    else if( !std_filesystem::is_directory( path ) )
+    {
+        WARNING( __FUNCTION__, "scripts path<%s> is not a directory", path.c_str() );
+        return;
+    }
+
     LOG( "Process scripts%s ...", readOnly ? " (read only)" : "" );
 
     std::vector<std::string> scripts;

@@ -23,6 +23,7 @@ target_sources( ReDefine
 		Raw.cpp
 		ReDefine.cpp
 		Script.cpp
+		StdFilesystem.h
 		Text.cpp
 		Variables.cpp
 

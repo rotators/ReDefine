@@ -1,6 +1,7 @@
 #include "FOClassic/Ini.h"
 
 #include "ReDefine.h"
+#include "StdFilesystem.h"
 
 static std::regex IsSimpleMath( "^([\\-]?[0-9]+)[\\t\\ ]*(\\*|\\/|\\+|\\-)[\\t\\ ]*([\\-]?[0-9]+)$" );
 
@@ -226,9 +227,24 @@ bool ReDefine::GetDefineValue( const std::string& type, const std::string& value
 
 bool ReDefine::ProcessHeader( const std::string& path, const ReDefine::Header& header )
 {
-    if( IsDefineType( header.Type ) )
+    if( path.empty() )
     {
-        WARNING( __FUNCTION__, "define type<%s> already in use", header.Type.c_str() );
+        WARNING( __FUNCTION__, "header<%s> path is empty", header.Filename.c_str() );
+        return false;
+    }
+    else if( !std_filesystem::exists( path ) )
+    {
+        WARNING( __FUNCTION__, "header<%s> path<%s> does not exists", header.Filename.c_str(), path.c_str() );
+        return false;
+    }
+    else if( !std_filesystem::is_directory( path ) )
+    {
+        WARNING( __FUNCTION__, "header<%s> path<%s> is not a directory", header.Filename.c_str(), path.c_str() );
+        return false;
+    }
+    else if( IsDefineType( header.Type ) )
+    {
+        WARNING( __FUNCTION__, "define type<%s> already in use", header.Filename.c_str(), header.Type.c_str() );
         return false;
     }
     else if( header.Prefix.empty() && header.Suffix.empty() )

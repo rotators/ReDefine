@@ -149,6 +149,7 @@ FormatSource( "Raw.cpp" )
 FormatSource( "ReDefine.cpp" )
 FormatSource( "ReDefine.h" )
 FormatSource( "Script.cpp" )
+FormatSource( "StdFilesystem.h" )
 FormatSource( "Text.cpp" )
 FormatSource( "Variables.cpp" )
 

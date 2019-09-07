@@ -4,6 +4,7 @@
 #include "FOClassic/Ini.h"
 
 #include "ReDefine.h"
+#include "StdFilesystem.h"
 #if HAVE_PARSER
 # include "Parser.h"
 #endif
@@ -1314,6 +1315,22 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
 void ReDefine::ProcessScript( const std::string& path, const std::string& filename, const bool readOnly /* = false */ )
 {
+    if( path.empty() )
+    {
+        WARNING( __FUNCTION__, "script<%s> path is empty", filename.c_str() );
+        return;
+    }
+    else if( !std_filesystem::exists( path ) )
+    {
+        WARNING( __FUNCTION__, "script<%s> path<%s> does not exists", filename.c_str(), path.c_str() );
+        return;
+    }
+    else if( !std_filesystem::is_directory( path ) )
+    {
+        WARNING( __FUNCTION__, "script<%s> path<%s> is not a directory", filename.c_str(), path.c_str() );
+        return;
+    }
+
     std::vector<std::string> lines;
     if( !ReadFile( TextGetFilename( path, filename ), lines ) )
         return;
