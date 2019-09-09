@@ -60,8 +60,8 @@ build_script:
 
 after_build:
  - sh: file ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
- - ps: $env:7ZIP a ReDefine.zip $env:REDEFINE_EXECUTABLE
- - ps: $env:7ZIP a ReDefine.zip README.md LICENSE.md Docs
+ - ps: & $env:7ZIP a ReDefine.zip $env:REDEFINE_EXECUTABLE
+ - ps: & $env:7ZIP a ReDefine.zip README.md LICENSE.md Docs
 
 artifacts:
  - path: ReDefine.zip
