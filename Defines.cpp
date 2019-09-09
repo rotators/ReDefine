@@ -359,7 +359,7 @@ bool ReDefine::ProcessValue( const std::string& type, std::string& value, const 
                 if( right == 0 )
                 {
                     if( !silent )
-                        WARNING( nullptr, "DIVISION BY ZERO" );
+                        WARNING( __FUNCTION__, "DIVISION BY ZERO" );
                     return false;
                 }
 

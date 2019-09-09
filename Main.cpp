@@ -3,14 +3,48 @@
 
 #include "ReDefine.h"
 
+void Usage( ReDefine* redefine )
+{
+    redefine->SHOW( " " );
+    redefine->SHOW( "Usage: ReDefine [options]" );
+    redefine->SHOW( " " );
+    redefine->SHOW( "OPTIONS" );
+    redefine->SHOW( " " );
+    redefine->SHOW( "  --help" );
+    redefine->SHOW( "  --config [filename]" );
+    redefine->SHOW( "  --headers [directory]" );
+    redefine->SHOW( "  --scripts[directory]" );
+    redefine->SHOW( "  --ro, --read, --read-only" );
+    redefine->SHOW( "  --log-file [filename]" );
+    redefine->SHOW( "  --log-warning [filename]" );
+    redefine->SHOW( "  --log-debug [filename]" );
+    redefine->SHOW( "  --debug-changes" );
+    #if defined (HAVE_PARSER)
+    redefine->SHOW( "  --parser" );
+    #endif
+    redefine->SHOW( " " );
+}
+
 int main( int argc, char** argv )
 {
     int result = EXIT_SUCCESS;
 
     // boring stuff
     std::setvbuf( stdout, NULL, _IONBF, 0 );
-    ReDefine* redefine = new ReDefine();
     CmdLine*  cmd = new CmdLine( argc, argv );
+    ReDefine* redefine = new ReDefine();
+
+    #if 0
+    if( cmd->IsOption( "help" ) )
+    {
+        Usage( redefine );
+
+        delete cmd;
+        delete redefine;
+
+        return result;
+    }
+    #endif
 
     // exciting stuff
     const bool readOnly = cmd->IsOption( "ro" ) || cmd->IsOption( "read" ) || cmd->IsOption( "read-only" );
@@ -19,11 +53,14 @@ int main( int argc, char** argv )
     redefine->SHOW( " " );
 
     //
-    // Init() / Finish() can be called at any point to completely reset object
+    // initialization
     //
-    // Init() recreates all internals
-    // Finish() does cleanup only; called by Init() and destructor
+    // Init()    recreates all internals
+    // Finish()  does cleanup only; called by Init() and destructor
     //
+    // both functions can be called at any point to completely reset object
+    //
+
     redefine->Init();
 
     std::string       config = "ReDefine.cfg";
@@ -34,52 +71,105 @@ int main( int argc, char** argv )
         config = cmd->GetStr( "config" );
 
     //
-    // load config
+    // load configuration
     // config can be either loaded from ini-like file,
     // or set "manually" if main application is storing configuration in different format
     //
     // in both cases it has to be done before any ReadConfig*() call(s), which checks ReDefine::Config content without touching any files
     //
+
     if( redefine->Config->LoadFile( config ) )
     {
-        // read logs configuration
-        // empty Log* disables saving to file
-        redefine->LogFile = redefine->Config->GetStr( section, "LogFile", redefine->LogFile );
-        redefine->LogWarning = redefine->Config->GetStr( section, "LogWarning", redefine->LogWarning );
-        redefine->LogDebug = redefine->Config->GetStr( section, "LogDebug", redefine->LogDebug );
+        //
+        // read logfiles configuration
+        // everything
+        // empty Log* setting disables saving to file
+        //
 
-        // override logs configuration from command line
+        // regular log
+        // used to display active configuration (skipping invalid entries) and changes in scripts
+        //
+        // changes which are not logged, but are applied only if script code is changed:
+        // - newline changes
+        // - side-cleanup: automagic clearing of lines with spaces/tabs only, removing extra tabs/spaces at end of line, removing extra newlines at end of file, etc.
+        if( redefine->Config->IsSectionKey( section, "LogFile" ) )
+        {
+            if( redefine->Config->IsSectionKeyEmpty( section, "LogFile" ) )
+                redefine->LogFile.clear();
+            else
+                redefine->LogFile = redefine->Config->GetStr( section, "LogFile", redefine->LogFile );
+        }
+
         if( !cmd->IsOptionEmpty( "log-file" ) )
             redefine->LogFile = cmd->GetStr( "log-file", redefine->LogFile );
+
+        // warnings log
+        // used to display info whenever something goes wrong
+        //
+        // as ReDefine does not know the concept of errors, and tries really hard to keep going, it might result with flood of warnings if something important is broken
+        if( redefine->Config->IsSectionKey( section, "LogWarning" ) )
+        {
+            if( redefine->Config->IsSectionKeyEmpty( section, "LogFile" ) )
+                redefine->LogWarning.clear();
+            else
+                redefine->LogWarning = redefine->Config->GetStr( section, "LogWarning", redefine->LogWarning );
+        }
+
         if( !cmd->IsOptionEmpty( "log-warning" ) )
             redefine->LogWarning = cmd->GetStr( "log-warning", redefine->LogWarning );
+
+        // debug log
+        // used to display info whenever something goes wrong (and it's most likely developer fault) and during bug hunting
+        //
+        // additionally, debug log is used on demand for tracking step-by-step changes in scripts code
+        if( redefine->Config->IsSectionKey( section, "LogDebug" ) )
+        {
+            if( redefine->Config->IsSectionKey( section, "LogDebug" ) )
+                redefine->LogDebug.clear();
+            else
+                redefine->LogDebug = redefine->Config->GetStr( section, "LogDebug", redefine->LogDebug );
+        }
+
         if( !cmd->IsOptionEmpty( "log-debug" ) )
             redefine->LogDebug = cmd->GetStr( "log-debug", redefine->LogDebug );
 
         // remove old logfiles
         redefine->RemoveLogs();
 
+        //
         // read directories configuration
+        //
+
         std::string headers = redefine->Config->GetStr( section, "HeadersDir" );
-        std::string scripts = redefine->Config->GetStr( section, "ScriptsDir" );
-
-        bool        debugChanges = redefine->Config->GetBool( section, "DebugChanges", false );
-        #if defined (HAVE_PARSER)
-        bool        parser = redefine->Config->GetBool( section, "Parser", false );
-        #endif
-
-        // override settings from command line
         if( !cmd->IsOptionEmpty( "headers" ) )
             headers = cmd->GetStr( "headers" );
+
+        std::string scripts = redefine->Config->GetStr( section, "ScriptsDir" );
         if( !cmd->IsOptionEmpty( "scripts" ) )
             scripts = cmd->GetStr( "scripts" );
+
+        //
+        // read additional configuration
+        //
+
+        bool debugChanges = redefine->Config->GetBool( section, "DebugChanges", false );
         if( cmd->IsOption( "debug-changes" ) )
             debugChanges = true;
+
         #if defined (HAVE_PARSER)
+        bool parser = redefine->Config->GetBool( section, "Parser", false );
         if( cmd->IsOption( "parser" ) )
             parser = true;
         #endif
 
+        int formatting = redefine->Config->GetInt( section, "FormatFunctions", -1 );
+        if( formatting >= ReDefine::SCRIPT_FORMAT_MIN && formatting <= ReDefine::SCRIPT_FORMAT_MAX )
+            redefine->ScriptFormatting = (ReDefine::ScriptCodeFormat)formatting;
+        redefine->ScriptFormattingForced = redefine->Config->GetBool( section, "FormatFunctionsForced", redefine->ScriptFormattingForced );
+
+        //
+        // pre-validate config
+        //
         if( headers.empty() )
         {
             redefine->WARNING( nullptr, "headers directory not set" );
@@ -96,27 +186,35 @@ int main( int argc, char** argv )
         // sections can be loaded separetely by either calling ReadConfig() and changing unwanted sections names to empty strings,
         // or calling related ReadConfig*() function only
         //
-        // defines section needs to be processed before other settings
+        // defines section is required and needs to be processed before other settings
         //
         else if( redefine->ReadConfig( "Defines", "Variable", "Function", "Raw", "Script" ) )
         {
             // unload config
             // added here to make sure Process*() functions are independent of ReadConfig*()
-            // in long-running applications it might be a good idea to keep config alive
+            // in long-running/ui applications it might be a good idea to keep config loaded
             redefine->Config->Unload();
 
+            //
             // additional tuning
+            //
+
             redefine->DebugChanges = debugChanges;
+
             #if defined (HAVE_PARSER)
             redefine->UseParser = parser;
             #endif
 
+            //
             // process headers
             //
+
             redefine->ProcessHeaders( headers );
 
+            //
             // process scripts
             //
+
             redefine->ProcessScripts( scripts, readOnly );
         }
         else
@@ -133,7 +231,10 @@ int main( int argc, char** argv )
         result = EXIT_FAILURE;
     }
 
+    //
     // show summary, if available
+    //
+
     if( redefine->Status.Process.Lines && redefine->Status.Process.Files )
     {
         redefine->LOG( "Process scripts ... %u line%s in %u file%s",
@@ -141,7 +242,10 @@ int main( int argc, char** argv )
                        redefine->Status.Process.Files, redefine->Status.Process.Files != 1 ? "s" : "" );
     }
 
+    //
     // show changes summary, if available
+    //
+
     if( redefine->Status.Process.LinesChanges && redefine->Status.Process.FilesChanges )
     {
         redefine->LOG( "Ch%sed scripts ... %u line%s in %u file%s%s",
@@ -151,7 +255,10 @@ int main( int argc, char** argv )
                        readOnly ? " can be changed" : "" );
     }
 
-    // show counters
+    //
+    // show counters, if available
+    //
+
     if( redefine->Status.Process.Counters.size() )
     {
         for( const auto& counter : redefine->Status.Process.Counters )
@@ -163,7 +270,7 @@ int main( int argc, char** argv )
                 redefine->WARNING( nullptr, " " );
                 redefine->WARNING( nullptr, "%s (%u)", counter.first.substr( 1, counter.first.length() - 2 ).c_str(), counter.second.size() );
             }
-            // counters set by script edit actions (DoNameCount, DoArgumentCount)
+            // counters set by script edit actions (DoNameCount, DoArgumentCount, etc.)
             else
             {
                 redefine->LOG( " " );
@@ -181,8 +288,8 @@ int main( int argc, char** argv )
     }
 
     // cleanup
-    delete redefine;
     delete cmd;
+    delete redefine;
 
     // go back to making Fallout mods
     return result;

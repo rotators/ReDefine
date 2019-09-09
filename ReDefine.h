@@ -213,6 +213,17 @@ public:
         SCRIPT_CODE_RESTART  = 0x100  // set by DoRestart; forces restart of line processing keeping changes already made to code
     };
 
+    enum ScriptCodeFormat : unsigned char
+    {
+        SCRIPT_FORMAT_UNCHANGED = 0,
+        SCRIPT_FORMAT_WIDE,
+        SCRIPT_FORMAT_MEDIUM,
+        SCRIPT_FORMAT_TIGHT,
+
+        SCRIPT_FORMAT_MIN = SCRIPT_FORMAT_UNCHANGED,
+        SCRIPT_FORMAT_MAX = SCRIPT_FORMAT_TIGHT
+    };
+
     struct ScriptCode
     {
         // always set
@@ -228,6 +239,7 @@ public:
         std::string              ReturnType;       // used by variables/functions
         std::vector<std::string> Arguments;        // used by functions
         std::vector<std::string> ArgumentsTypes;   // used by functions
+        std::vector<std::string> ArgumentsRaw;     // used by functions
         std::string              Operator;         // used by variables/functions
         std::string              OperatorArgument; // used by variables/functions
 
@@ -300,6 +312,8 @@ public:
 
     bool                                            DebugChanges;
     bool                                            UseParser;
+    bool                                            ScriptFormattingForced;
+    ScriptCodeFormat                                ScriptFormatting;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );

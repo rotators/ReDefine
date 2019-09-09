@@ -189,7 +189,7 @@ std::regex ReDefine::TextGetDefineRegex( std::string prefix, std::string suffix,
     if( !suffix.empty() )
         suffix = "_" + suffix;
 
-    return std::regex( "^[\\t\\ ]*\\#define[\\t\\ ]+(" + prefix + "[A-Za-z0-9_]+" + suffix + ")[\\t\\ ]+" + (paren ? "\\(" : "") + "([0-9]+)" + (paren ? "\\)" : "") );
+    return std::regex( "^[\\t\\ ]*\\#define[\\t\\ ]+(" + prefix + "[A-Za-z0-9_]+" + suffix + ")[\\t\\ ]+" + (paren ? "\\(" : "") + "([\\-]?[0-9]+)" + (paren ? "\\)" : "") );
 }
 
 //
@@ -223,7 +223,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
     {
         const std::string        func = it->str( 1 );
         std::string              full, arg, op, opArg;
-        std::vector<std::string> args;
+        std::vector<std::string> args, argsRaw;
         size_t                   stage = 0, funcStart = it->position(), funcLen = func.length() + 1, funcArgsLen = 0;
         int                      balance = 1;
         bool                     quote = false, quoteFound = false;
@@ -274,6 +274,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                 {
                     // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
                     args.push_back( TextGetTrimmed( arg ) );
+                    argsRaw.push_back( arg );
                     arg.clear();
                     continue;
                 }
@@ -360,6 +361,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         {
             // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
             args.push_back( TextGetTrimmed( arg ) );
+            argsRaw.push_back( arg );
         }
 
         // validate quotes detection
@@ -432,6 +434,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         function.Full = full;
         function.Name = func;
         function.Arguments = args;
+        function.ArgumentsRaw = argsRaw;
         function.Operator = TextGetTrimmed( op );
         function.OperatorArgument = TextGetTrimmed( opArg );
 

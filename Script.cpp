@@ -63,7 +63,27 @@ std::string ReDefine::ScriptCode::GetFullString() const
             result += "(";
 
             if( !Arguments.empty() )
-                result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+            {
+                switch( Parent->ScriptFormatting )
+                {
+                    case SCRIPT_FORMAT_UNCHANGED:
+                        result += Parent->TextGetJoined( ArgumentsRaw, "," );
+                        break;
+                    case SCRIPT_FORMAT_WIDE:
+                        result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+                        break;
+                    case SCRIPT_FORMAT_MEDIUM:
+                        result += Parent->TextGetJoined( Arguments, ", " );
+                        break;
+                    case SCRIPT_FORMAT_TIGHT:
+                        result += Parent->TextGetJoined( Arguments, "," );
+                        break;
+                    default:
+                        Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, SCRIPT_FORMAT_WIDE );
+                        Parent->ScriptFormatting = SCRIPT_FORMAT_WIDE;
+                        result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+                }
+            }
 
             result += ")";
         }
@@ -641,6 +661,7 @@ static bool DoArgumentSet( ReDefine::ScriptCode& code, const std::vector<std::st
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
+    code.ArgumentsRaw[idx] = code.Parent->TextGetReplaced( code.ArgumentsRaw[idx], code.Arguments[idx], values[1] );
     code.Arguments[idx] = values[1];
 
     return true;
@@ -695,7 +716,6 @@ static bool DoArgumentSetType( ReDefine::ScriptCode& code, const std::vector<std
     unsigned int idx;
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
-
 
     code.ArgumentsTypes[idx] = values[1];
 
@@ -776,6 +796,7 @@ static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std:
         return false;
 
     code.Arguments.clear();
+    code.ArgumentsRaw.clear();
     code.ArgumentsTypes.clear();
 
     return true;
@@ -795,6 +816,7 @@ static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std:
         return false;
 
     code.Arguments.erase( code.Arguments.begin() + idx );
+    code.ArgumentsRaw.erase( code.ArgumentsRaw.begin() + idx );
     code.ArgumentsTypes.erase( code.ArgumentsTypes.begin() + idx );
 
     return true;
@@ -871,6 +893,7 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
         return false;
 
     code.Arguments.push_back( values[0] );
+    code.ArgumentsRaw.push_back( values[0] );
     code.ArgumentsTypes.push_back( type );
 
     return true;
@@ -895,6 +918,7 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
         return false;
 
     code.Arguments.insert( code.Arguments.begin(), values[0] );
+    code.ArgumentsRaw.insert( code.ArgumentsRaw.begin(), values[0] );
     code.ArgumentsTypes.insert( code.ArgumentsTypes.begin(), type );
 
     return true;
@@ -918,6 +942,7 @@ static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std
         return code.CallEditDo( "DoArgumentsClear", {} );
 
     code.Arguments.resize( size );
+    code.ArgumentsRaw.resize( size );
     code.ArgumentsTypes.resize( size );
 
     return true;
@@ -1145,7 +1170,7 @@ void ReDefine::InitScript()
 
 void ReDefine::FinishScript( bool finishCallbacks /* = true */ )
 {
-    if( finishCallbacks ) // we kinda need them between config resets :)
+    if( finishCallbacks )     // we kinda need them between config resets :)
     {
         EditIf.clear();
         EditDo.clear();
@@ -1573,7 +1598,7 @@ public:
 
                 // update if needed
                 code.SetFullString();
-                if( TextGetPacked( codeOld.Full ) != TextGetPacked( code.Full ) )
+                if( ScriptFormattingForced || TextGetPacked( codeOld.Full ) != TextGetPacked( code.Full ) )
                     line = TextGetReplaced( line, codeOld.Full, code.Full );
 
                 // handle restart
@@ -1590,7 +1615,11 @@ public:
         ProcessRaw( line );
 
         // detect line change, ignore meaningless changes
-        if( TextGetPacked( line ) != TextGetPacked( lineOld ) )
+        bool change = TextGetPacked( line ) != TextGetPacked( lineOld );
+        if( !change )
+            change = ScriptFormattingForced && line != lineOld;
+
+        if( change )
         {
             // log changes
             // requires messing with Status.Current so log functions won't add unwanted info

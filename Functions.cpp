@@ -61,6 +61,11 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
             badArgs = "arguments";
             found = function.Arguments.size();
         }
+        else if( expected != function.ArgumentsRaw.size() )
+        {
+            badArgs = "raw arguments";
+            found = function.ArgumentsRaw.size();
+        }
         else if( expected != function.ArgumentsTypes.size() )
         {
             badArgs = "arguments types";
@@ -72,7 +77,12 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
     {
         expected = function.Arguments.size();
 
-        if( expected != function.ArgumentsTypes.size() )
+        if( expected != function.ArgumentsRaw.size() )
+        {
+            badArgs = "raw arguments";
+            found = function.ArgumentsRaw.size();
+        }
+        else if( expected != function.ArgumentsTypes.size() )
         {
             badArgs = "arguments types";
             found = function.ArgumentsTypes.size();
@@ -105,6 +115,13 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
             continue;
         }
 
-        ProcessValue( function.ArgumentsTypes[idx], function.Arguments[idx] );
+        const std::string prevArgument = function.Arguments[idx];
+
+        if( ProcessValue( function.ArgumentsTypes[idx], function.Arguments[idx] ) )
+        {
+            // const std::string prevArgumentRaw = function.ArgumentsRaw[idx];
+            function.ArgumentsRaw[idx] = TextGetReplaced( function.ArgumentsRaw[idx], prevArgument, function.Arguments[idx] );
+            // DEBUG( __FUNCTION__, "[%s] -> [%s]", prevArgumentRaw.c_str(), function.ArgumentsRaw[idx].c_str() );
+        }
     }
 }

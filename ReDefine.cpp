@@ -48,7 +48,9 @@ ReDefine::ReDefine() :
     LogWarning( "ReDefine.WARNING.log" ),
     LogDebug( "ReDefine.DEBUG.log" ),
     DebugChanges( false ),
-    UseParser( false )
+    UseParser( false ),
+    ScriptFormattingForced( false ),
+    ScriptFormatting( SCRIPT_FORMAT_WIDE )
 {}
 
 ReDefine::~ReDefine()
