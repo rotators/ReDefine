@@ -42,8 +42,6 @@ for:
 # - Cache -> CMakeLists.txt, Build.cmake
 
 init:
- - sh:  set REDEFINE_EXECUTABLE=${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
- - cmd: set REDEFINE_EXECUTABLE=%APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
  - sh: if [ "${PLATFORM}" == "x32" ]; then arch=i386; else arch=amd64; fi
 
 install:
@@ -58,10 +56,10 @@ build_script:
 
 after_build:
  - sh: file ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
- - sh:  7za a ReDefine.zip ${REDEFINE_EXECUTABLE}
- - cmd: 7z  a ReDefine.zip  %REDEFINE_EXECUTABLE%
- - sh:  7za a ReDefine.zip README.md LICENSE.md Docs
- - cmd: 7z  a ReDefine.zip README.md LICENSE.md Docs
+ - sh:  7za a ReDefine.zip ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
+ - cmd: 7z  a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
+#- sh:  7za a ReDefine.zip README.md LICENSE.md Docs
+#- cmd: 7z  a ReDefine.zip README.md LICENSE.md Docs
 
 artifacts:
  - path: ReDefine.zip
