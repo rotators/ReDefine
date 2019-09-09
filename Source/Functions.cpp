@@ -47,52 +47,16 @@ bool ReDefine::ReadConfigFunctions( const std::string& section )
 void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
 {
     // make sure function is preconfigured properly
-    std::string badArgs;
-    size_t      found = 0, expected = 0;
-
-    // known functions
     auto it = FunctionsPrototypes.find( function.Name );
     if( it != FunctionsPrototypes.end() )
     {
-        expected = it->second.ArgumentsTypes.size();
+        const size_t expected = it->second.ArgumentsTypes.size(), found = function.Arguments.size();
 
-        if( expected != function.Arguments.size() )
+        if( expected != found )
         {
-            badArgs = "arguments";
-            found = function.Arguments.size();
+            WARNING( __FUNCTION__, "invalid number of function<%s> arguments : expected<%u> found<%u>", function.Name.c_str(), expected, found );
+            return;
         }
-        else if( expected != function.ArgumentsRaw.size() )
-        {
-            badArgs = "raw arguments";
-            found = function.ArgumentsRaw.size();
-        }
-        else if( expected != function.ArgumentsTypes.size() )
-        {
-            badArgs = "arguments types";
-            found = function.ArgumentsTypes.size();
-        }
-    }
-    // unknown functions
-    else
-    {
-        expected = function.Arguments.size();
-
-        if( expected != function.ArgumentsRaw.size() )
-        {
-            badArgs = "raw arguments";
-            found = function.ArgumentsRaw.size();
-        }
-        else if( expected != function.ArgumentsTypes.size() )
-        {
-            badArgs = "arguments types";
-            found = function.ArgumentsTypes.size();
-        }
-    }
-
-    if( !badArgs.empty() )
-    {
-        WARNING( __FUNCTION__, "invalid number of function<%s> %s : found<%u> expected<%u>", function.Name.c_str(), badArgs.c_str(), found, expected );
-        return;
     }
 
     // called so late to always detect count mismatch
@@ -101,26 +65,26 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
 
     for( size_t idx = 0, len = function.Arguments.size(); idx < len; idx++ )
     {
-        if( function.ArgumentsTypes[idx].empty() ) // can happen by using DoArgumentsResize without DoArgumentChangeType or other edit combinations
+        if( function.Arguments[idx].Type.empty() ) // can happen by using DoArgumentsResize without DoArgumentChangeType or other edit combinations
         {
             WARNING( __FUNCTION__, "argument<%u> type not set", idx );
             continue;
         }
-        else if( IsMysteryDefineType( function.ArgumentsTypes[idx] ) )
+        else if( IsMysteryDefineType( function.Arguments[idx].Type ) )
         {
             // only "?" type should be guessed
-            if( function.ArgumentsTypes[idx] == "?" )
-                ProcessValueGuessing( function.Arguments[idx] );
+            if( function.Arguments[idx].Type == "?" )
+                ProcessValueGuessing( function.Arguments[idx].Arg );
 
             continue;
         }
 
-        const std::string prevArgument = function.Arguments[idx];
+        const std::string prevArgument = function.Arguments[idx].Arg;
 
-        if( ProcessValue( function.ArgumentsTypes[idx], function.Arguments[idx] ) )
+        if( ProcessValue( function.Arguments[idx].Type, function.Arguments[idx].Arg ) )
         {
             // const std::string prevArgumentRaw = function.ArgumentsRaw[idx];
-            function.ArgumentsRaw[idx] = TextGetReplaced( function.ArgumentsRaw[idx], prevArgument, function.Arguments[idx] );
+            function.Arguments[idx].Raw = TextGetReplaced( function.Arguments[idx].Raw, prevArgument, function.Arguments[idx].Arg );
             // DEBUG( __FUNCTION__, "[%s] -> [%s]", prevArgumentRaw.c_str(), function.ArgumentsRaw[idx].c_str() );
         }
     }

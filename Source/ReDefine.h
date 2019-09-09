@@ -196,6 +196,13 @@ public:
         std::vector<std::string> Defines;
     };
 
+    struct ScriptCodeArgument
+    {
+        std::string Arg; // trimmed
+        std::string Raw; // original
+        std::string Type;
+    };
+
     enum ScriptCodeFlag : unsigned int
     {
         // types
@@ -228,20 +235,18 @@ public:
     {
         // always set
 
-        ReDefine*                Parent;
-        ScriptFile*              File;
+        ReDefine*                       Parent;
+        ScriptFile*                     File;
 
         // dynamic
 
-        unsigned int             Flags;            // see ScriptCodeFlag
-        std::string              Full;
-        std::string              Name;             // used by variables/functions
-        std::string              ReturnType;       // used by variables/functions
-        std::vector<std::string> Arguments;        // used by functions
-        std::vector<std::string> ArgumentsTypes;   // used by functions
-        std::vector<std::string> ArgumentsRaw;     // used by functions
-        std::string              Operator;         // used by variables/functions
-        std::string              OperatorArgument; // used by variables/functions
+        unsigned int                    Flags;            // see ScriptCodeFlag
+        std::string                     Full;
+        std::string                     Name;             // used by variables/functions
+        std::string                     ReturnType;       // used by variables/functions
+        std::vector<ScriptCodeArgument> Arguments;        // used by functions
+        std::string                     Operator;         // used by variables/functions
+        std::string                     OperatorArgument; // used by variables/functions
 
         // changelog
         // keeps history of of all code changes
@@ -262,6 +267,8 @@ public:
 
         // sets ScriptCode::Full to value returned by GetFullString()
         void SetFullString();
+
+        void SetFunctionArgumentsTypes( const FunctionProto& proto );
 
         // helpers
 

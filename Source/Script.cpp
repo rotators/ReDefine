@@ -17,7 +17,6 @@ ReDefine::ScriptCode::ScriptCode( const unsigned int& flags /* = 0 */ ) :
     Name( "" ),
     ReturnType( "" ),
     Arguments(),
-    ArgumentsTypes(),
     Operator( "" ),
     OperatorArgument( "" )
 {}
@@ -64,24 +63,34 @@ std::string ReDefine::ScriptCode::GetFullString() const
 
             if( !Arguments.empty() )
             {
+                std::vector<std::string> args, raw;
+
+                for( auto& arg : Arguments )
+                {
+                    args.push_back( arg.Arg );
+
+                    if( Parent->ScriptFormatting == SCRIPT_FORMAT_UNCHANGED )
+                        raw.push_back( arg.Raw );
+                }
+
                 switch( Parent->ScriptFormatting )
                 {
                     case SCRIPT_FORMAT_UNCHANGED:
-                        result += Parent->TextGetJoined( ArgumentsRaw, "," );
+                        result += Parent->TextGetJoined( raw, "," );
                         break;
                     case SCRIPT_FORMAT_WIDE:
-                        result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+                        result += " " + Parent->TextGetJoined( args, ", " ) + " ";
                         break;
                     case SCRIPT_FORMAT_MEDIUM:
-                        result += Parent->TextGetJoined( Arguments, ", " );
+                        result += Parent->TextGetJoined( args, ", " );
                         break;
                     case SCRIPT_FORMAT_TIGHT:
-                        result += Parent->TextGetJoined( Arguments, "," );
+                        result += Parent->TextGetJoined( args, "," );
                         break;
                     default:
                         Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, SCRIPT_FORMAT_WIDE );
                         Parent->ScriptFormatting = SCRIPT_FORMAT_WIDE;
-                        result += " " + Parent->TextGetJoined( Arguments, ", " ) + " ";
+                        result += " " + Parent->TextGetJoined( args, ", " ) + " ";
                 }
             }
 
@@ -100,6 +109,28 @@ std::string ReDefine::ScriptCode::GetFullString() const
 void ReDefine::ScriptCode::SetFullString()
 {
     Full = GetFullString();
+}
+
+void ReDefine::ScriptCode::SetFunctionArgumentsTypes( const ReDefine::FunctionProto& proto )
+{
+    if( !IsFunction( __FUNCTION__ ) )
+        return;
+
+    if( Arguments.size() != proto.ArgumentsTypes.size() )
+        Parent->WARNING( __FUNCTION__, "invalid number of function<%s> arguments : expected<%u> found<%u>", Name.c_str(), proto.ArgumentsTypes.size(), Arguments.size() );
+
+    auto it = proto.ArgumentsTypes.begin();
+    auto end = proto.ArgumentsTypes.end();
+
+    for( ScriptCodeArgument& argument : Arguments )
+    {
+        if( it != end )
+            argument.Type = *it;
+        else
+            argument.Type = "?";
+
+        ++it;
+    }
 }
 
 //
@@ -385,10 +416,10 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    if( code.Parent->TextIsInt( code.Arguments[idx] ) )
+    if( code.Parent->TextIsInt( code.Arguments[idx].Arg ) )
     {
         int         val = -1;
-        std::string type = code.ArgumentsTypes[idx], value;
+        std::string type = code.Arguments[idx].Type, value;
 
         if( code.IsValues( nullptr, values, 3 ) )
         {
@@ -398,7 +429,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
                 return false;
         }
 
-        if( !code.Parent->TextGetInt( code.Arguments[idx], val ) || !code.Parent->GetDefineName( type, val, value ) )
+        if( !code.Parent->TextGetInt( code.Arguments[idx].Arg, val ) || !code.Parent->GetDefineName( type, val, value ) )
             return false;
 
         // code.Parent->DEBUG( __FUNCTION__, "parsed compare: %s == %s", value.c_str(), values[1].c_str() );
@@ -406,7 +437,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
     }
 
     // code.Parent->DEBUG( __FUNCTION__, "raw compare: %s == %s", code.Arguments[idx].c_str(), values[1].c_str() );
-    return code.Arguments[idx] == values[1];
+    return code.Arguments[idx].Arg == values[1];
 }
 
 // ? IfArgumentValue:INDEX,STRING
@@ -422,7 +453,7 @@ static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    return code.Arguments[idx] == values[1];
+    return code.Arguments[idx].Arg == values[1];
 }
 
 // ? IfArgumentNotValue:INDEX,STRING
@@ -438,7 +469,7 @@ static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vec
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    return code.Arguments[idx] != values[1];
+    return code.Arguments[idx].Arg != values[1];
 }
 
 // ? IfArgumentsEqual:INDEX,INDEX
@@ -464,7 +495,7 @@ static bool IfArgumentsEqual( const ReDefine::ScriptCode& code, const std::vecto
         return false;
     }
 
-    return code.Arguments[idx1] == code.Arguments[idx2];
+    return code.Arguments[idx1].Arg == code.Arguments[idx2].Arg;
 }
 
 // ? IfArgumentsSize:UINT
@@ -643,7 +674,7 @@ static bool DoArgumentCount( ReDefine::ScriptCode& code, const std::vector<std::
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    code.Parent->Status.Process.Counters[values[1]][code.Arguments[idx]]++;
+    code.Parent->Status.Process.Counters[values[1]][code.Arguments[idx].Arg]++;
 
     return true;
 }
@@ -661,8 +692,8 @@ static bool DoArgumentSet( ReDefine::ScriptCode& code, const std::vector<std::st
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    code.ArgumentsRaw[idx] = code.Parent->TextGetReplaced( code.ArgumentsRaw[idx], code.Arguments[idx], values[1] );
-    code.Arguments[idx] = values[1];
+    code.Arguments[idx].Raw = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, values[1] );
+    code.Arguments[idx].Arg = values[1];
 
     return true;
 }
@@ -681,7 +712,7 @@ static bool DoArgumentSetPrefix( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    return code.CallEditDo( "DoArgumentSet", { values[0], values[1] + code.Arguments[idx] } );
+    return code.CallEditDo( "DoArgumentSet", { values[0], values[1] + code.Arguments[idx].Arg } );
 }
 
 // ? DoArgumentSetSuffix:INDEX,STRING
@@ -698,7 +729,7 @@ static bool DoArgumentSetSuffix( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    return code.CallEditDo( "DoArgumentSet", { values[0], code.Arguments[idx] + values[1] } );
+    return code.CallEditDo( "DoArgumentSet", { values[0], code.Arguments[idx].Arg + values[1] } );
 }
 
 // ? DoArgumentSetType:INDEX,TYPE
@@ -717,7 +748,7 @@ static bool DoArgumentSetType( ReDefine::ScriptCode& code, const std::vector<std
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    code.ArgumentsTypes[idx] = values[1];
+    code.Arguments[idx].Type = values[1];
 
     return true;
 }
@@ -747,25 +778,25 @@ static bool DoArgumentLookup( ReDefine::ScriptCode& code, const std::vector<std:
             counter = values[1];
     }
 
-    if( code.Parent->TextIsInt( code.Arguments[idx] ) )
+    if( code.Parent->TextIsInt( code.Arguments[idx].Arg ) )
     {
         int         val = -1;
         std::string value;
 
-        if( !code.Parent->TextGetInt( code.Arguments[idx], val ) )
+        if( !code.Parent->TextGetInt( code.Arguments[idx].Arg, val ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "cannot convert string<%s> into integer", code.Arguments[idx].c_str() );
+            code.Parent->WARNING( __FUNCTION__, "cannot convert string<%s> into integer", code.Arguments[idx].Arg.c_str() );
             return true;
         }
 
-        if( !code.Parent->GetDefineName( code.Arguments[idx], val, value ) )
+        if( !code.Parent->GetDefineName( code.Arguments[idx].Arg, val, value ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.ArgumentsTypes[idx].c_str(), code.Arguments[idx].c_str() );
+            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
 
             if( unknown )
-                code.Parent->Status.Process.Counters["!Unknown " + code.ArgumentsTypes[idx] + "!"][code.Arguments[idx]]++;
+                code.Parent->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
             else if( !counter.empty() )
-                code.Parent->Status.Process.Counters[counter][code.Arguments[idx]]++;
+                code.Parent->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
 
             return true;
         }
@@ -773,14 +804,14 @@ static bool DoArgumentLookup( ReDefine::ScriptCode& code, const std::vector<std:
     else
     {
         int val = -1;
-        if( !code.Parent->GetDefineValue( code.ArgumentsTypes[idx], code.Arguments[idx], val ) )
+        if( !code.Parent->GetDefineValue( code.Arguments[idx].Type, code.Arguments[idx].Arg, val ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.ArgumentsTypes[idx].c_str(), code.Arguments[idx].c_str() );
+            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
 
             if( unknown )
-                code.Parent->Status.Process.Counters["!Unknown " + code.ArgumentsTypes[idx] + "!"][code.Arguments[idx]]++;
+                code.Parent->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
             else if( !counter.empty() )
-                code.Parent->Status.Process.Counters[counter][code.Arguments[idx]]++;
+                code.Parent->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
 
             return true;
         }
@@ -796,8 +827,6 @@ static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std:
         return false;
 
     code.Arguments.clear();
-    code.ArgumentsRaw.clear();
-    code.ArgumentsTypes.clear();
 
     return true;
 }
@@ -816,8 +845,6 @@ static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std:
         return false;
 
     code.Arguments.erase( code.Arguments.begin() + idx );
-    code.ArgumentsRaw.erase( code.ArgumentsRaw.begin() + idx );
-    code.ArgumentsTypes.erase( code.ArgumentsTypes.begin() + idx );
 
     return true;
 }
@@ -837,12 +864,12 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string arg = code.Arguments[idx], type = code.ArgumentsTypes[idx];
+    std::string argument = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
 
-    if( !code.CallEditDo( "DoArgumentsPushBack", { arg, type } ) )
+    if( !code.CallEditDo( "DoArgumentsPushBack", { argument, type } ) )
         return false;
 
     return true;
@@ -863,7 +890,7 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string argument = code.Arguments[idx], type = code.ArgumentsTypes[idx];
+    std::string argument = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
@@ -892,9 +919,11 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
-    code.Arguments.push_back( values[0] );
-    code.ArgumentsRaw.push_back( values[0] );
-    code.ArgumentsTypes.push_back( type );
+    ReDefine::ScriptCodeArgument arg;
+    arg.Arg = arg.Raw = values[0];
+    arg.Type = type;
+
+    code.Arguments.push_back( arg );
 
     return true;
 }
@@ -917,9 +946,10 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
-    code.Arguments.insert( code.Arguments.begin(), values[0] );
-    code.ArgumentsRaw.insert( code.ArgumentsRaw.begin(), values[0] );
-    code.ArgumentsTypes.insert( code.ArgumentsTypes.begin(), type );
+    ReDefine::ScriptCodeArgument argument;
+    argument.Arg = argument.Raw = values[0];
+    argument.Type = type;
+    code.Arguments.insert( code.Arguments.begin(), argument );
 
     return true;
 }
@@ -942,8 +972,6 @@ static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std
         return code.CallEditDo( "DoArgumentsClear", {} );
 
     code.Arguments.resize( size );
-    code.ArgumentsRaw.resize( size );
-    code.ArgumentsTypes.resize( size );
 
     return true;
 }
@@ -1564,17 +1592,8 @@ public:
                     if( it != FunctionsPrototypes.end() )
                     {
                         code.ReturnType = it->second.ReturnType;
-                        code.ArgumentsTypes = it->second.ArgumentsTypes;
-                    }
-                    else
-                    {
-                        code.ReturnType = "?";
-
-                        if( !code.Arguments.empty() )
-                        {
-                            code.ArgumentsTypes.resize( code.Arguments.size() );
-                            std::fill( code.ArgumentsTypes.begin(), code.ArgumentsTypes.end(), "?" );
-                        }
+                        // code.ArgumentsTypes = it->second.ArgumentsTypes;
+                        code.SetFunctionArgumentsTypes( it->second );
                     }
                 }
 
@@ -1717,7 +1736,8 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
             if( it != FunctionsPrototypes.end() )
             {
                 code.ReturnType = it->second.ReturnType;
-                code.ArgumentsTypes = it->second.ArgumentsTypes;
+                // code.ArgumentsTypes = it->second.ArgumentsTypes;
+                code.SetFunctionArgumentsTypes( it->second );
             }
         }
     }

@@ -58,8 +58,8 @@ after_build:
  - sh: file ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
  - sh:  7za a ReDefine.zip ${APPVEYOR_BUILD_FOLDER}/Build/ReDefine
  - cmd: 7z  a ReDefine.zip %APPVEYOR_BUILD_FOLDER%\Build\Release\ReDefine.exe
- - sh:  7za a ReDefine.zip README.md LICENSE.md Docs Source
- - cmd: 7z  a ReDefine.zip README.md LICENSE.md Docs Source
+ - sh:  7za a ReDefine.zip Source
+ - cmd: 7z  a ReDefine.zip Source
 
 artifacts:
  - path: ReDefine.zip

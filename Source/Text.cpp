@@ -221,12 +221,12 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
     unsigned int funcIdx = 0;
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetFunctions ), end = std::sregex_iterator(); it != end; ++it, funcIdx++ )
     {
-        const std::string        func = it->str( 1 );
-        std::string              full, arg, op, opArg;
-        std::vector<std::string> args, argsRaw;
-        size_t                   stage = 0, funcStart = it->position(), funcLen = func.length() + 1, funcArgsLen = 0;
-        int                      balance = 1;
-        bool                     quote = false, quoteFound = false;
+        const std::string               func = it->str( 1 );
+        std::string                     full, arg, op, opArg;
+        std::vector<ScriptCodeArgument> args;
+        size_t                          stage = 0, funcStart = it->position(), funcLen = func.length() + 1, funcArgsLen = 0;
+        int                             balance = 1;
+        bool                            quote = false, quoteFound = false;
 
         for( size_t t = funcStart + funcLen, tLen = text.length(); t < tLen; t++, funcLen++ )
         {
@@ -272,9 +272,12 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                 // update arguments list
                 else if( ch == ',' && balance == 1 )
                 {
-                    // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
-                    args.push_back( TextGetTrimmed( arg ) );
-                    argsRaw.push_back( arg );
+                    ScriptCodeArgument argument;
+                    argument.Arg = TextGetTrimmed( arg );
+                    argument.Raw = arg;
+                    argument.Type = "?";
+                    args.push_back( argument );
+
                     arg.clear();
                     continue;
                 }
@@ -357,11 +360,14 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         }
 
         // add last argument (if any)
-        if( arg.length() )
+        if( !arg.empty() )
         {
-            // DEBUG( __FUNCTION__, "arg [%s] -> [%s]", arg.c_str(), TextGetTrimmed( arg ).c_str() );
-            args.push_back( TextGetTrimmed( arg ) );
-            argsRaw.push_back( arg );
+            ScriptCodeArgument argument;
+            argument.Arg = TextGetTrimmed( arg );
+            argument.Raw = arg;
+            argument.Type = "?";
+
+            args.push_back( argument );
         }
 
         // validate quotes detection
@@ -417,9 +423,15 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
 
                 Status.Current.Clear();
 
+                std::vector<std::string> argsVec;
+                for( const ScriptCodeArgument& argument : args )
+                {
+                    argsVec.push_back( argument.Arg );
+                }
+
                 DEBUG( __FUNCTION__, "\tcalc[%s]", text.substr( funcStart, funcLen ).c_str() );
                 DEBUG( __FUNCTION__, "\tfull[%s] b=%d", full.c_str(), balance );
-                DEBUG( __FUNCTION__, "\tfunc[%s] args[%s] op[%s] opArg[%s] ", func.c_str(), TextGetJoined( args, "|" ).c_str(), op.c_str(), opArg.c_str() );
+                DEBUG( __FUNCTION__, "\tfunc[%s] args[%s] op[%s] opArg[%s] ", func.c_str(), TextGetJoined( argsVec, "|" ).c_str(), op.c_str(), opArg.c_str() );
 
                 Status.Current = prev;
             }
@@ -433,8 +445,8 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
 
         function.Full = full;
         function.Name = func;
+        function.ReturnType = "?";
         function.Arguments = args;
-        function.ArgumentsRaw = argsRaw;
         function.Operator = TextGetTrimmed( op );
         function.OperatorArgument = TextGetTrimmed( opArg );
 
