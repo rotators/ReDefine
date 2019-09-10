@@ -124,7 +124,7 @@ int main( int argc, char** argv )
         // additionally, debug log is used on demand for tracking step-by-step changes in scripts code
         if( redefine->Config->IsSectionKey( section, "LogDebug" ) )
         {
-            if( redefine->Config->IsSectionKey( section, "LogDebug" ) )
+            if( redefine->Config->IsSectionKeyEmpty( section, "LogDebug" ) )
                 redefine->LogDebug.clear();
             else
                 redefine->LogDebug = redefine->Config->GetStr( section, "LogDebug", redefine->LogDebug );
