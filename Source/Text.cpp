@@ -355,6 +355,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                     }
                 }
 
+                full = text.substr( funcStart, funcLen + 1 );
                 opArg += ch;
             }
         }
@@ -388,7 +389,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         }
 
         // validate operator
-        if( op.length() && !opArg.length() )
+        if( !op.empty() && opArg.empty() )
         {
             // DEBUG( __FUNCTION__, "STRIP(%u) OPERATOR(%s) [%s] -> [%s] :: %s", funcIdx, op.c_str(), full.c_str(), full.substr( 0, funcArgsLen ).c_str(), text.c_str() );
             full = full.substr( 0, funcArgsLen );
