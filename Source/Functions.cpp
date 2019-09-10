@@ -59,7 +59,7 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
         }
     }
 
-    // called so late to always detect count mismatch
+    // called so late to always detect arguments count mismatch
     if( !function.Arguments.size() )
         return;
 

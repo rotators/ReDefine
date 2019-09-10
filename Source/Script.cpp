@@ -122,7 +122,7 @@ void ReDefine::ScriptCode::SetFunctionArgumentsTypes( const ReDefine::FunctionPr
     auto it = proto.ArgumentsTypes.begin();
     auto end = proto.ArgumentsTypes.end();
 
-    for( ScriptCodeArgument& argument : Arguments )
+    for( Argument& argument : Arguments )
     {
         if( it != end )
             argument.Type = *it;
@@ -864,12 +864,12 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string argument = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
+    std::string arg = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
 
-    if( !code.CallEditDo( "DoArgumentsPushBack", { argument, type } ) )
+    if( !code.CallEditDo( "DoArgumentsPushBack", { arg, type } ) )
         return false;
 
     return true;
@@ -890,12 +890,12 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string argument = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
+    std::string arg = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
 
-    if( !code.CallEditDo( "DoArgumentsPushFront", { argument, type } ) )
+    if( !code.CallEditDo( "DoArgumentsPushFront", { arg, type } ) )
         return false;
 
     return true;
@@ -919,11 +919,11 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
-    ReDefine::ScriptCodeArgument arg;
-    arg.Arg = arg.Raw = values[0];
-    arg.Type = type;
+    ReDefine::ScriptCode::Argument argument;
+    argument.Arg = argument.Raw = values[0];
+    argument.Type = type;
 
-    code.Arguments.push_back( arg );
+    code.Arguments.push_back( argument );
 
     return true;
 }
@@ -946,7 +946,7 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
     if( !code.GetTYPE( __FUNCTION__, type, true ) )
         return false;
 
-    ReDefine::ScriptCodeArgument argument;
+    ReDefine::ScriptCode::Argument argument;
     argument.Arg = argument.Raw = values[0];
     argument.Type = type;
     code.Arguments.insert( code.Arguments.begin(), argument );
@@ -972,6 +972,15 @@ static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std
         return code.CallEditDo( "DoArgumentsClear", {} );
 
     code.Arguments.resize( size );
+
+    for( ReDefine::ScriptCode::Argument& argument : code.Arguments )
+    {
+        if( argument.Arg.empty() )
+        {
+            argument.Arg = argument.Raw = "/* not set */";
+            argument.Type = "?";
+        }
+    }
 
     return true;
 }
