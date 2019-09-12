@@ -169,7 +169,7 @@ bool ReDefine::TextIsDefine( const std::string& text )
     return std::regex_search( text, IsDefine );
 }
 
-bool ReDefine::TextGetDefine( const std::string& text, const std::regex& re, std::string& name, int& value )
+bool ReDefine::TextGetDefineInt( const std::string& text, const std::regex& re, std::string& name, int& value )
 {
     std::smatch match;
     if( std::regex_search( text, match, re ) )
@@ -182,7 +182,20 @@ bool ReDefine::TextGetDefine( const std::string& text, const std::regex& re, std
     return false;
 }
 
-std::regex ReDefine::TextGetDefineRegex( std::string prefix, std::string suffix, bool paren )
+bool ReDefine::TextGetDefineString( const std::string& text, const std::regex& re, std::string& name, std::string& value )
+{
+    std::smatch match;
+    if( std::regex_search( text, match, re ) )
+    {
+        name = match.str( 1 );
+        value = match.str( 2 );
+        return true;
+    }
+
+    return false;
+}
+
+std::regex ReDefine::TextGetDefineIntRegex( std::string prefix, std::string suffix, bool paren )
 {
     if( !prefix.empty() )
         prefix += "_";
@@ -190,6 +203,16 @@ std::regex ReDefine::TextGetDefineRegex( std::string prefix, std::string suffix,
         suffix = "_" + suffix;
 
     return std::regex( "^[\\t\\ ]*\\#define[\\t\\ ]+(" + prefix + "[A-Za-z0-9_]+" + suffix + ")[\\t\\ ]+" + (paren ? "\\(" : "") + "([\\-]?[0-9]+)" + (paren ? "\\)" : "") );
+}
+
+std::regex ReDefine::TextGetDefineStringRegex( std::string prefix, std::string suffix, bool paren, const std::string& re )
+{
+    if( !prefix.empty() )
+        prefix += "_";
+    if( !suffix.empty() )
+        suffix = "_" + suffix;
+
+    return std::regex( "^[\\t\\ ]*\\#define[\\t\\ ]+(" + prefix + "[A-Za-z0-9_]+" + suffix + ")[\\t\\ ]+" + (paren ? "\\(" : "") + "(" + re + ")" + (paren ? "\\)" : "") );
 }
 
 //

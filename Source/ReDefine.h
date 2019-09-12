@@ -354,8 +354,10 @@ public:
     std::string TextGetTrimmed( const std::string& text );
 
     bool       TextIsDefine( const std::string& text );
-    bool       TextGetDefine( const std::string& text, const std::regex& re, std::string& name, int& value );
-    std::regex TextGetDefineRegex( std::string prefix, std::string suffix, bool paren );
+    bool       TextGetDefineInt( const std::string& text, const std::regex& re, std::string& name, int& value );
+    bool       TextGetDefineString( const std::string& text, const std::regex& re, std::string& name, std::string& value );
+    std::regex TextGetDefineIntRegex( std::string prefix, std::string suffix, bool paren );
+    std::regex TextGetDefineStringRegex( std::string prefix, std::string suffix, bool paren, const std::string& re );
 
     unsigned int TextGetVariables( const std::string& text, std::vector<ScriptCode>& result );
     unsigned int TextGetFunctions( const std::string& text, std::vector<ScriptCode>& result );

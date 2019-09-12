@@ -520,14 +520,14 @@ static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::s
     return code.IsFlag( ReDefine::SCRIPT_CODE_EDITED );
 }
 
-// ? IfFileDefined:STRING
-static bool IfFileDefined( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
-{
-    if( !code.IsValues( __FUNCTION__, values, 1 ) )
-        return false;
-
-    return std::find( code.File->Defines.begin(), code.File->Defines.end(), values[0] ) != code.File->Defines.end();
-}
+// DISABLED IfFileDefined:STRING
+// static bool IfFileDefined( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
+// {
+//    if( !code.IsValues( __FUNCTION__, values, 1 ) )
+//        return false;
+//
+//    return std::find( code.File->Defines.begin(), code.File->Defines.end(), values[0] ) != code.File->Defines.end();
+// }
 
 // ? IfFileName:STRING
 static bool IfFileName( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
@@ -1168,7 +1168,7 @@ void ReDefine::InitScript()
     EditIf["IfArgumentsEqual"] = &IfArgumentsEqual;
     EditIf["IfArgumentsSize"] = &IfArgumentsSize;
     EditIf["IfEdited"] = &IfEdited;
-    EditIf["IfFileDefined"] = &IfFileDefined;
+//  EditIf["IfFileDefined"] = &IfFileDefined;
     EditIf["IfFileName"] = &IfFileName;
     EditIf["IfFunction"] = &IfFunction;
     EditIf["IfName"] = &IfName;

@@ -264,8 +264,8 @@ bool ReDefine::ProcessHeader( const std::string& path, const ReDefine::Header& h
     Status.Current.LineNumber = 0;
 
     // cache patterns
-    std::regex  reParen = TextGetDefineRegex( header.Prefix, header.Suffix, true );
-    std::regex  reNoParen = TextGetDefineRegex( header.Prefix, header.Suffix, false );
+    std::regex  reParen = TextGetDefineIntRegex( header.Prefix, header.Suffix, true );
+    std::regex  reNoParen = TextGetDefineIntRegex( header.Prefix, header.Suffix, false );
 
     std::string name;
     int         value;
@@ -279,7 +279,7 @@ bool ReDefine::ProcessHeader( const std::string& path, const ReDefine::Header& h
             continue;
 
         // find defines with given prefix
-        if( TextGetDefine( line, reParen, name, value ) || TextGetDefine( line, reNoParen, name, value ) )
+        if( TextGetDefineInt( line, reParen, name, value ) || TextGetDefineInt( line, reNoParen, name, value ) )
         {
             // human detection
             if( RegularDefines[header.Type].find( value ) != RegularDefines[header.Type].end() )
