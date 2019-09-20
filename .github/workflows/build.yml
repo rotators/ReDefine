@@ -1,0 +1,33 @@
+name: Build
+
+jobs:
+
+ build:
+  runs-on: ${{ matrix.os }}
+  strategy:
+   matrix:
+    os:       [ubuntu-latest, windows-2016]
+    platform: [x32, x64]
+
+  steps:
+
+  - uses: actions/checkout@master
+
+  - name: apt
+    run:  sudo apt install -y gcc-multilib g++-multilib && hash -r
+    if:   runner.os == 'Linux' && matrix.platform == 'x32'
+
+  - name: build
+    run:  cmake -P Build.cmake
+    env:
+     CI:              true
+     MATRIX_OS:       ${{ matrix.os }}
+     MATRIX_PLATFORM: ${{ matrix.platform }}
+
+  - name:  build check (linux)
+    run:   file Build/ReDefine
+    if:    runner.os == 'Linux'
+  - name:  build check (windows)
+    run:   7z l Build/Release/ReDefine.exe | egrep "^(Path|Type|32|64)"
+    shell: bash
+    if:    runner.os == 'Windows'
