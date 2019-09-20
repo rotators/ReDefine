@@ -44,8 +44,8 @@ jobs:
            7z l ReDefine.zip
     shell: bash
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@master
-    with:
-     name: ReDefine
-     path: ReDefine.zip
+# - name: Upload artifact
+#   uses: actions/upload-artifact@master
+#   with:
+#    name: ReDefine
+#    path: ReDefine.zip
