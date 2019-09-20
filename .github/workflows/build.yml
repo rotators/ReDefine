@@ -12,6 +12,13 @@ jobs:
     platform: [x32, x64]
 
   steps:
+  - name: Environment (Linux)
+    run:  echo ::set-env name=REDEFINE_EXECUTABLE::Build/ReDefine
+    if:   runner.os == 'Linux'
+
+  - name: Environment (Windows)
+    run:  echo ::set-env name=REDEFINE_EXECUTABLE::Build/Release/ReDefine.exe
+    if: runner.os == 'Windows'
 
   - uses: actions/checkout@master
 
@@ -19,17 +26,26 @@ jobs:
     run:  sudo apt install -y gcc-multilib g++-multilib && hash -r
     if:   runner.os == 'Linux' && matrix.platform == 'x32'
 
-  - name: build
+  - name: Build
     run:  cmake -P Build.cmake
     env:
      CI:              true
      MATRIX_OS:       ${{ matrix.os }}
      MATRIX_PLATFORM: ${{ matrix.platform }}
 
-  - name:  build check (linux)
-    run:   file Build/ReDefine
-    if:    runner.os == 'Linux'
-  - name:  build check (windows)
-    run:   7z l Build/Release/ReDefine.exe | egrep "^(Path|Type|32|64)"
+  - name:  Build check
+    run:   file $REDEFINE_EXECUTABLE
     shell: bash
-    if:    runner.os == 'Windows'
+
+  - name: Prepare artifact
+    run:   |
+           7z a ReDefine.zip $GITHUB_WORKSPACE/$REDEFINE_EXECUTABLE
+           7z a ReDefine.zip Source
+           7z l ReDefine.zip
+    shell: bash
+
+  - name: Upload artifact
+    uses: actions/upload-artifact@master
+    with:
+     name: ReDefine
+     path: ReDefine.zip
