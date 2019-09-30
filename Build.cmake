@@ -137,7 +137,7 @@ if( DEFINED ENV{CI} )
 			message( FATAL_ERROR "Unknown platform : $ENV{MATRIX_PLATFORM}" )
 		endif()
 
-		if( "$ENV{MATRIX_OS}" MATCHES  "^ubuntu" )
+		if( "$ENV{MATRIX_OS}" MATCHES  "^ubuntu-" )
 			set( BUILD_FILE "Makefile" )
 			set( BUILD_GENERATOR "Unix Makefiles" )
 		elseif( "$ENV{MATRIX_OS}" STREQUAL "windows-2016" )

@@ -92,7 +92,7 @@ bool ReDefine::ReadConfigDefines( const std::string& sectionPrefix )
 
             if( !Config->GetSectionKeys( section, keys, true ) )
             {
-                WARNING( __FUNCTION__, "config section<%s> is empty", section );
+                WARNING( __FUNCTION__, "config section<%s> is empty", section.c_str() );
                 continue;
             }
 

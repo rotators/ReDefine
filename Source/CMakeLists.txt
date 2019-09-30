@@ -76,7 +76,7 @@ else()
 	endif()
 
 	check_cxx_compiler_flag( -static-libgcc COMPILER_FLAG_STATIC_LIBGCC )
-	check_cxx_compiler_flag( -static-libgcc COMPILER_FLAG_STATIC_LIBSTDCPP )
+	check_cxx_compiler_flag( -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
 
 	if( COMPILER_FLAG_STATIC_LIBGCC )
 		target_link_libraries( ReDefine -static-libgcc )

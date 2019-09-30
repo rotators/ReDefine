@@ -1324,7 +1324,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         int tmpriority;
                         if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
                         {
-                            WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", vals[0] );
+                            WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", vals[0].c_str() );
                             ignore = true;
                             break;
                         }
