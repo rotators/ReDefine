@@ -53,16 +53,14 @@ jobs:
            else
                 false
            fi
+           if   [ '${{ runner.os }}' == 'Linux' ]; then
+                echo ::set-env name=REDEFINE_EXECUTABLE::Build/ReDefine
+           elif [ '${{ runner.os }}' == 'Windows' ]; then
+                echo ::set-env name=REDEFINE_EXECUTABLE::Build/Release/ReDefine.exe
+           fi
     shell: bash
 
-  - name: Environment (Linux)
-    run:  echo ::set-env name=REDEFINE_EXECUTABLE::Build/ReDefine
-    if:   runner.os == 'Linux'
-
-  - name: Environment (Windows)
-    run:  echo ::set-env name=REDEFINE_EXECUTABLE::Build/Release/ReDefine.exe
-    if:   runner.os == 'Windows'
-
+  # required by gcc *and* clang
   - name: Software (Linux)
     run:  sudo apt install -y gcc-multilib g++-multilib && hash -r
     if:   runner.os == 'Linux' && matrix.platform == 'x32'
@@ -79,17 +77,17 @@ jobs:
   - name:  Build check
     run:   |
            file $REDEFINE_EXECUTABLE
-           if [ '${{ runner.os }}' == 'Linux' ]; then ldd $REDEFINE_EXECUTABLE; fi
+           ldd  $REDEFINE_EXECUTABLE
     shell: bash
 
-  - name: Prepare artifact
-    run:   |
-           7z a ReDefine.zip $GITHUB_WORKSPACE/$REDEFINE_EXECUTABLE
-           7z a ReDefine.zip Source
-           7z l ReDefine.zip
-    shell: bash
-    if:    runner.os == 'Windows' && matrix.platform == 'x32'
-
+# - name: Prepare artifact
+#   run:   |
+#          7z a ReDefine.zip $GITHUB_WORKSPACE/$REDEFINE_EXECUTABLE
+#          7z a ReDefine.zip Source
+#          7z l ReDefine.zip
+#   shell: bash
+#   if:    runner.os == 'Windows' && matrix.platform == 'x32'
+#
 # - name: Upload artifact
 #   uses: actions/upload-artifact@master
 #   with:
