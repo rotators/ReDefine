@@ -8,7 +8,7 @@ jobs:
   runs-on: ${{ matrix.os }}
   strategy:
    matrix:
-    os:       [ubuntu-latest, windows-2016]
+    os:       [ubuntu-latest, windows-2016, windows-2019]
     platform: [x32, x64]
     compiler: [gnu, clang, cl]
     exclude:
@@ -21,7 +21,7 @@ jobs:
       platform: x64
       compiler: cl
 
-    # windows - gnu
+    # windows-2016 - gnu
     - os: windows-2016
       platform: x32
       compiler: gnu
@@ -29,11 +29,27 @@ jobs:
       platform: x64
       compiler: gnu
 
-    # windows - clang
+    # windows-2016 - clang
     - os: windows-2016
       platform: x32
       compiler: clang
     - os: windows-2016
+      platform: x64
+      compiler: clang
+
+    # windows-2019 - gnu
+    - os: windows-2019
+      platform: x32
+      compiler: gnu
+    - os: windows-2019
+      platform: x64
+      compiler: gnu
+
+    # windows-2019 - clang
+    - os: windows-2019
+      platform: x32
+      compiler: clang
+    - os: windows-2019
       platform: x64
       compiler: clang
 
