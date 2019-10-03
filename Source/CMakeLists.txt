@@ -86,36 +86,87 @@ else()
 	endif()
 endif()
 
-function( lib_filesystem target )
+function( StdFilesystem target )
 	if( NOT CMAKE_CXX_STANDARD )
 		message( FATAL_ERROR "CMAKE_CXX_STANDARD not set" )
 	endif()
 
-	include(CheckIncludeFileCXX)
+	message( STATUS "Find std::filesystem..." )
+	include( CheckIncludeFileCXX )
+	include( CheckCXXSourceCompiles )
 
-	set( CMAKE_REQUIRED_FLAGS_OLD "${CMAKE_REQUIRED_FLAGS}" )
+	unset( _std_filesystem_include_ CACHE )
+	unset( _std_filesystem_namespace_ CACHE )
+
+	set( CMAKE_REQUIRED_QUIET true )
 	set( CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${CMAKE_CXX${CMAKE_CXX_STANDARD}_STANDARD_COMPILE_OPTION}" )
 
-	check_include_file_cxx( filesystem HAVE_FILESYSTEM )
-	if( NOT HAVE_FILESYSTEM )
-		check_include_file_cxx( experimental/filesystem HAVE_EXPERIMENTAL_FILESYSTEM )
-	endif()
+	foreach( include IN ITEMS filesystem experimental/filesystem )
+		# CMAKE_REQUIRED_LIBRARIES
+		# see https://cmake.org/cmake/help/latest/policy/CMP0075.html
+		unset( CMAKE_REQUIRED_LIBRARIES )
 
-	set( CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS_OLD}" )
+		check_include_file_cxx( ${include} _std_filesystem_include_ )
+		if( NOT _std_filesystem_include_ )
+			unset( _std_filesystem_include_ CACHE )
+			continue()
+		endif()
 
-	if( HAVE_FILESYSTEM )
-		target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM )
-	elseif( HAVE_EXPERIMENTAL_FILESYSTEM )
-		target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM )
-		target_link_libraries( ${target} stdc++fs )
-	else()
-		message( FATAL_ERROR "Cannot find std::filesystem (neither standard or experimental)" )
-		#set_target_properties( ${target} PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1 )
-	endif()
+		# _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+		# see https://github.com/microsoft/STL/blob/b72c0a609f00b92aedbb18d09faf72d48ceb9b4f/stl/inc/experimental/filesystem#L27-L31
+		foreach( define IN ITEMS "" _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING )
+			if( "${define}" STREQUAL "" )
+				unset( CMAKE_REQUIRED_DEFINITIONS )
+			else()
+				set( CMAKE_REQUIRED_DEFINITIONS -D${define} )
+			endif()
 
+			foreach( namespace IN ITEMS std::filesystem std::experimental::filesystem std::experimental::filesysystem::v1 std::tr2::sys std::__fs::filesystem )
+				foreach( library IN ITEMS "" stdc++fs c++fs c++experimental )
+					set( CMAKE_REQUIRED_LIBRARIES ${library} )
+
+					check_cxx_source_compiles( "#include <${include}>
+					int main(){ ${namespace}::exists(\"file\"); }"
+					_std_filesystem_namespace_ )
+
+					if( _std_filesystem_namespace_ )
+						message( STATUS "Find std::filesystem... found" )
+						message( STATUS "     include:   ${include}" )
+						message( STATUS "     namespace: ${namespace}" )
+
+						if( "${include}" STREQUAL "filesystem" )
+							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM )
+							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM_NAMESPACE=${namespace} )
+
+						else()
+							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM )
+							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM_NAMESPACE=${namespace} )
+						endif()
+
+						if( NOT "${define}" STREQUAL "" )
+							message( STATUS "     define:    ${define}" )
+							target_compile_definitions( ${target} PRIVATE ${define} )
+						endif()
+
+						if( NOT "${library}" STREQUAL "" )
+							message( STATUS "     library:   ${library}" )
+							target_link_libraries( ${target} ${library} )
+						endif()
+
+						return()
+					else()
+						unset( _std_filesystem_namespace_ CACHE )
+					endif()
+				endforeach()
+			endforeach()
+		endforeach()
+		unset( _std_filesystem_include_ CACHE )
+	endforeach()
+
+	message( STATUS "Find std::filesystem... not found" )
 endfunction()
 
-lib_filesystem( ReDefine )
+StdFilesystem( ReDefine )
 
 # Prettify IDE
 
