@@ -5,7 +5,7 @@ cmake_minimum_required( VERSION 3.7.2 FATAL_ERROR )
 #> AutomatedBuild.cmake <#
 
 # Prepare build directory
-function( CreateBuildDirectory dir generator tool file )
+function( CreateBuildDirectory dir generator platform tool file )
 
 	# use full path
 	file( TO_CMAKE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}" dir )
@@ -25,9 +25,13 @@ function( CreateBuildDirectory dir generator tool file )
 			set( info ", toolset: ${tool}" )
 			set( toolset -T ${tool} )
 		endif()
+		if( platform )
+			string( APPEND info ", platform: ${platform}" )
+			set( platform -A ${platform} )
+		endif()
 		message( STATUS "Starting generator (${generator}${info})" )
 		execute_process(
-			COMMAND ${CMAKE_COMMAND} ${toolchain} -G "${generator}" ${toolset} -S "${CMAKE_CURRENT_LIST_DIR}/Source"
+			COMMAND ${CMAKE_COMMAND} ${toolchain} -G "${generator}" ${platform} ${toolset} -S "${CMAKE_CURRENT_LIST_DIR}/Source"
 			RESULT_VARIABLE result
 			WORKING_DIRECTORY "${dir}"
 		)
@@ -145,7 +149,14 @@ if( DEFINED ENV{CI} )
 			set( BUILD_GENERATOR "Visual Studio 15 2017${BUILD_GENERATOR_SUFFIX}" )
 		elseif( "$ENV{MATRIX_OS}" STREQUAL "windows-2019" )
 			set( BUILD_FILE "ReDefine.sln" )
-			set( BUILD_GENERATOR "Visual Studio 16 2019${BUILD_GENERATOR_SUFFIX}" )
+			set( BUILD_GENERATOR "Visual Studio 16 2019" )
+			if( "$ENV{MATRIX_PLATFORM}" STREQUAL "x32" )
+				set( BUILD_PLATFORM "Win32" )
+			elseif( "$ENV{MATRIX_PLATFORM}" STREQUAL "x64" )
+				set( BUILD_PLATFORM "x64" )
+			else()
+				message( FATAL_ERROR "Unknown platform ('$ENV{MATRIX_PLATFORM}')" )
+			endif()
 		else()
 			message( FATAL_ERROR "Unknown GitHub Actions image ('$ENV{MATRIX_OS}')" )
 		endif()
@@ -176,7 +187,7 @@ FormatSource( "Source/StdFilesystem.h" )
 FormatSource( "Source/Text.cpp" )
 FormatSource( "Source/Variables.cpp" )
 
-CreateBuildDirectory( "Build" "${BUILD_GENERATOR}" "${BUILD_TOOL}" "${BUILD_FILE}" )
+CreateBuildDirectory( "Build" "${BUILD_GENERATOR}" "${BUILD_PLATFORM}" "${BUILD_TOOL}" "${BUILD_FILE}" )
 if( BUILD_FAIL )
 	message( FATAL_ERROR "Build error" )
 endif()
