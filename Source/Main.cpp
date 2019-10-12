@@ -10,15 +10,15 @@ void Usage( ReDefine* redefine )
     redefine->SHOW( " " );
     redefine->SHOW( "OPTIONS" );
     redefine->SHOW( " " );
-    redefine->SHOW( "  --help" );
-    redefine->SHOW( "  --config [filename]" );
-    redefine->SHOW( "  --headers [directory]" );
-    redefine->SHOW( "  --scripts[directory]" );
-    redefine->SHOW( "  --ro, --read, --read-only" );
-    redefine->SHOW( "  --log-file [filename]" );
-    redefine->SHOW( "  --log-warning [filename]" );
-    redefine->SHOW( "  --log-debug [filename]" );
-    redefine->SHOW( "  --debug-changes" );
+    redefine->SHOW( "  --help                     Short summary of available options" );
+    redefine->SHOW( "  --config [filename]        Changes location of configuration file (default: ReDefine.cfg)" );
+    redefine->SHOW( "  --headers [directory]      Changes location of scripts headers directory (default: current directory)" );
+    redefine->SHOW( "  --scripts[directory]       Changes location of scripts directory (default: current directory)" );
+    redefine->SHOW( "  --log-file [filename]      Changes location of general logfile (default: %s)", redefine->LogFile.c_str() );
+    redefine->SHOW( "  --log-warning [filename]   Changes location of warnings logfile (default: %s)", redefine->LogWarning.c_str() );
+    redefine->SHOW( "  --log-debug [filename]     Changes location of debug logfile (default: %s)", redefine->LogDebug.c_str() );
+    redefine->SHOW( "  --ro, --read, --read-only  Enables read-only mode; scripts files won't be changed (default: disabled)" );
+    redefine->SHOW( "  --debug-changes            Enables debug mode; (default: %s)", redefine->DebugChanges ? "enabled" : "disabled" );
     #if defined (HAVE_PARSER)
     redefine->SHOW( "  --parser" );
     #endif
@@ -34,7 +34,6 @@ int main( int argc, char** argv )
     CmdLine*  cmd = new CmdLine( argc, argv );
     ReDefine* redefine = new ReDefine();
 
-    #if 0
     if( cmd->IsOption( "help" ) )
     {
         Usage( redefine );
@@ -44,7 +43,6 @@ int main( int argc, char** argv )
 
         return result;
     }
-    #endif
 
     // exciting stuff
     const bool readOnly = cmd->IsOption( "ro" ) || cmd->IsOption( "read" ) || cmd->IsOption( "read-only" );
