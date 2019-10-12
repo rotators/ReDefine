@@ -7,6 +7,7 @@ jobs:
  build:
   runs-on: ${{ matrix.os }}
   strategy:
+   fail-fast: false
    matrix:
     os:       [ubuntu-latest, windows-2016, windows-2019]
     platform: [x32, x64]
@@ -92,12 +93,14 @@ jobs:
 
   - name:  Build check
     run:   |
+           :
            file $REDEFINE_EXECUTABLE
            ldd  $REDEFINE_EXECUTABLE
     shell: bash
 
 # - name: Prepare artifact
 #   run:   |
+#          :
 #          7z a ReDefine.zip $GITHUB_WORKSPACE/$REDEFINE_EXECUTABLE
 #          7z a ReDefine.zip Source
 #          7z l ReDefine.zip

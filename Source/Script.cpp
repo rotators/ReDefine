@@ -1273,7 +1273,9 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         break;
                     }
                     else if( arg.size() == 1 )
-                    {}
+                    {
+                        // do nothing
+                    }
                     else if( arg.size() == 2 )
                         vals = TextGetSplitted( arg[1], ',' );
                     else
@@ -1324,7 +1326,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         int tmpriority;
                         if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
                         {
-                            WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", vals[0].c_str() );
+                            WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", name.c_str(), vals[0].c_str() );
                             ignore = true;
                             break;
                         }
