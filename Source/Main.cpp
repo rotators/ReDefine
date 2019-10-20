@@ -5,11 +5,11 @@
 
 void Usage( ReDefine* redefine )
 {
-    redefine->SHOW( " " );
+    redefine->SHOW( "" );
     redefine->SHOW( "Usage: ReDefine [options]" );
-    redefine->SHOW( " " );
+    redefine->SHOW( "" );
     redefine->SHOW( "OPTIONS" );
-    redefine->SHOW( " " );
+    redefine->SHOW( "" );
     redefine->SHOW( "  --help                     Short summary of available options" );
     redefine->SHOW( "  --config [filename]        Changes location of configuration file (default: ReDefine.cfg)" );
     redefine->SHOW( "  --headers [directory]      Changes location of scripts headers directory (default: current directory)" );
@@ -22,7 +22,7 @@ void Usage( ReDefine* redefine )
     #if defined (HAVE_PARSER)
     redefine->SHOW( "  --parser" );
     #endif
-    redefine->SHOW( " " );
+    redefine->SHOW( "" );
 }
 
 int main( int argc, char** argv )

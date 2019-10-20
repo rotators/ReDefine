@@ -187,7 +187,11 @@ FormatSource( "Source/StdFilesystem.h" )
 FormatSource( "Source/Text.cpp" )
 FormatSource( "Source/Variables.cpp" )
 
-CreateBuildDirectory( "Build" "${BUILD_GENERATOR}" "${BUILD_PLATFORM}" "${BUILD_TOOL}" "${BUILD_FILE}" )
+if( NOT BUILD_DIR )
+    set( BUILD_DIR "Build" )
+endif()
+
+CreateBuildDirectory( "${BUILD_DIR}" "${BUILD_GENERATOR}" "${BUILD_PLATFORM}" "${BUILD_TOOL}" "${BUILD_FILE}" )
 if( BUILD_FAIL )
 	message( FATAL_ERROR "Build error" )
 endif()

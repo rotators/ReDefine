@@ -53,7 +53,7 @@ if( MSVC )
 
 	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_FLAGS "/MT " )
 	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/OPT:REF " )
-else()
+else() # assumes UNIX
 	set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 	include( CheckCXXCompilerFlag )

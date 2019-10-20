@@ -1,0 +1,96 @@
+name: Build
+
+on:
+ push:
+  paths:
+  - '.github/workflows/Build.yml'
+  - 'Source/**'
+  - '**.cmake'
+ pull_request:
+
+jobs:
+
+ Build:
+  runs-on: ${{ matrix.cfg.os }}
+  name:    ${{ matrix.cfg.name }} (${{ matrix.cfg.platform }})
+  strategy:
+   fail-fast: false
+   matrix:
+    cfg:
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/Redefine }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/Redefine }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/Redefine }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/Redefine }
+    - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
+    - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
+    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
+    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
+
+  steps:
+
+  # required by gcc *and* clang
+  - name: Install additional software
+    if:   runner.os == 'Linux' && matrix.cfg.platform == 'x32'
+    run:  sudo apt install -y gcc-multilib g++-multilib && hash -r
+
+  - name: Clone repository
+    uses: actions/checkout@master
+    with:
+     fetch-depth: 1
+
+  - name: Build
+    run:  cmake -P Build.cmake
+    env:
+     CI:              true
+     CC:              ${{ matrix.cfg.cc }}
+     CXX:             ${{ matrix.cfg.cxx }}
+     MATRIX_OS:       ${{ matrix.cfg.os }}
+     MATRIX_PLATFORM: ${{ matrix.cfg.platform }}
+
+  - name:  Build check
+    run:   |
+           :
+           file ${{ matrix.cfg.redefine }}
+           ldd  ${{ matrix.cfg.redefine }}
+    shell: bash
+
+ ##
+
+ Scan:
+  needs: Build
+  runs-on: ubuntu-latest
+
+  steps:
+
+  - name: Install Clang tools
+    run:  |
+          :
+          for cmd in "apt update" "apt search clang-tools" "apt install clang-tools-8"; do
+              echo ::group::$cmd
+              sudo $cmd 2>&1
+              echo ::endgroup::
+          done
+
+  - name: Clone repository
+    uses: actions/checkout@master
+    with:
+     fetch-depth: 1
+
+  - name: Build scan
+    run:  scan-build-8 cmake -P Build.cmake
+
+# - name: Prepare artifact
+#   if:    matrix.cfg.os == 'windows-2016' && matrix.cfg.platform == 'x32'
+#   run:   |
+#          :
+#          7z a ReDefine.zip $GITHUB_WORKSPACE/${{ matrix.cfg.redefine }}
+#          7z a ReDefine.zip Source
+#          7z l ReDefine.zip
+#   shell: bash
+#
+# - name: Upload artifact
+#   if:    runner.os == 'Windows' && matrix.cfg.platform == 'x32'
+#   uses: actions/upload-artifact@master
+#   with:
+#    name: ReDefine
+#    path: ReDefine.zip

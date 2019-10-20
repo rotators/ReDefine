@@ -6,14 +6,6 @@
 
 #include "ReDefine.h"
 
-static unsigned int StrLength( const char* str )
-{
-    const char* str_ = str;
-    while( *str )
-        str++;
-    return (unsigned int)(str - str_);
-}
-
 static void Print( ReDefine* redefine, const std::string& log, const char* prefix, const char* caller, const char* format, va_list& args, bool lineInfo )
 {
     std::string full;
@@ -36,10 +28,6 @@ static void Print( ReDefine* redefine, const std::string& log, const char* prefi
     char text[4096];
     std::memset( text, 0, sizeof(text) );
     std::vsnprintf( text, sizeof(text), format, args );
-
-    // skip empty text
-    if( !StrLength( text ) )
-        return;
 
     full += std::string( text );
 
