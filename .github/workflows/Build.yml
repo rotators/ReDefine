@@ -82,7 +82,7 @@ jobs:
   - name: clang-tidy
     run:  cmake -DBUILD_DIR=Build.ClangTidy -P Build.cmake
     env:
-     CLANG_TIDY=clang-tidy-8;-checks=*,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-type-vararg,-google-readability-braces-around-statements,-google-readability-todo,-readability-braces-around-statements,-readability-implicit-bool-cast
+     CLANG_TIDY: clang-tidy-8;-checks=*,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-type-vararg,-google-readability-braces-around-statements,-google-readability-todo,-readability-braces-around-statements,-readability-implicit-bool-cast
 
 # - name: Prepare artifact
 #   if:    matrix.cfg.os == 'windows-2016' && matrix.cfg.platform == 'x32'
