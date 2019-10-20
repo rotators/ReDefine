@@ -17,10 +17,10 @@ jobs:
    fail-fast: false
    matrix:
     cfg:
-    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/Redefine }
-    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/Redefine }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/Redefine }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/Redefine }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/ReDefine }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine }
     - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
     - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
     - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
