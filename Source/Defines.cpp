@@ -399,7 +399,7 @@ bool ReDefine::ProcessValue( const std::string& type, std::string& value, const 
 
 void ReDefine::ProcessValueGuessing( std::string& value )
 {
-    if( !VariablesGuessing.size() )
+    if( VariablesGuessing.empty() )
         return;
 
     int val = 0;

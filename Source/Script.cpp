@@ -1266,7 +1266,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     // split name from arguments
                     std::vector<std::string> vals;
                     std::vector<std::string> arg = TextGetSplitted( action, ':' );
-                    if( !arg.size() )
+                    if( arg.empty() )
                     {
                         DEBUG( __FUNCTION__, "IGNORE [%s]", action.c_str() );
                         ignore = true;
@@ -1321,7 +1321,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         break;
                     }
 
-                    if( (arg[0] == "RunBefore" || arg[0] == "RunAfter") && vals.size() && !vals[0].empty() )
+                    if( (arg[0] == "RunBefore" || arg[0] == "RunAfter") && !vals.empty() && !vals[0].empty() )
                     {
                         int tmpriority;
                         if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
@@ -1349,13 +1349,13 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     ignore = true;
                 }
 
-                if( !edit.Conditions.size() )
+                if( edit.Conditions.empty() )
                 {
                     WARNING( nullptr, "script edit<%s> ignored : no conditions", edit.Name.c_str() );
                     ignore = true;
                 }
 
-                if( !edit.Results.size() )
+                if( edit.Results.empty() )
                 {
                     WARNING( nullptr, "script edit<%s> ignored : no results", edit.Name.c_str() );
                     ignore = true;
@@ -1801,7 +1801,7 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
 
 void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld )
 {
-    // editing must always works on backup to prevent massive screwup,
+    // editing must always works on backup to prevent massive screwup
     // original code will be updated only if there's no problems with *any* condition/result function
     // that, plus (intentional) massive spam in warning log should be enough to get user's attention (yeah, i don't belive that either... :P)
     ScriptCode        code = codeOld;
@@ -1823,7 +1823,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 run = code.CallEditIf( condition.Name, condition.Values );
 
                 if( debug && ( (first && run) || !first ) )
-                    code.Change( change + " " + condition.Name + (condition.Values.size() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
+                    code.Change( change + " " + condition.Name + (!condition.Values.empty() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
 
                 if( !run )
                     break;
@@ -1834,13 +1834,11 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
             if( !run )
                 continue;
 
-            first = true;
-
             // you are Result, you must Do
             for( const ScriptEdit::Action& result : edit.Results )
             {
                 if( debug )
-                    log = " " + result.Name + (result.Values.size() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
+                    log = " " + result.Name + (!result.Values.empty() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
                 run = code.CallEditDo( result.Name, result.Values );
 
@@ -1853,7 +1851,6 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
 
                     return;
                 }
-
 
                 if( debug )
                     code.Change( change + log, code.GetFullString() );

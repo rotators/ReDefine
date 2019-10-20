@@ -65,7 +65,7 @@ jobs:
   - name: Install Clang tools
     run:  |
           :
-          for cmd in "apt update" "apt search clang-tools" "apt install clang-tools-8"; do
+          for cmd in "apt update" "apt search clang-tools" "apt install clang-tools-8 clang-tidy-8"; do
               echo ::group::$cmd
               sudo $cmd 2>&1
               echo ::endgroup::
@@ -76,8 +76,13 @@ jobs:
     with:
      fetch-depth: 1
 
-  - name: Build scan
-    run:  scan-build-8 cmake -P Build.cmake
+  - name: scan-build
+    run:  scan-build-8 cmake -DBUILD_DIR=Build.ScanBuild -P Build.cmake
+
+  - name: clang-tidy
+    run:  cmake -DBUILD_DIR=Build.ClangTidy -P Build.cmake
+    env:
+     CLANG_TIDY=clang-tidy-8;-checks=*,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-type-vararg,-google-readability-braces-around-statements,-google-readability-todo,-readability-braces-around-statements,-readability-implicit-bool-cast
 
 # - name: Prepare artifact
 #   if:    matrix.cfg.os == 'windows-2016' && matrix.cfg.platform == 'x32'

@@ -343,7 +343,7 @@ void ReDefine::ProcessHeaders( const std::string& path )
         }
     }
 
-    if( VariablesGuessing.size() )
+    if( !VariablesGuessing.empty() )
         LOG( "Added guessing ... %s", TextGetJoined( VariablesGuessing, ", " ).c_str() );
 
     // keep valid settings only

@@ -60,7 +60,7 @@ void ReDefine::ProcessFunctionArguments( ReDefine::ScriptCode& function )
     }
 
     // called so late to always detect arguments count mismatch
-    if( !function.Arguments.size() )
+    if( function.Arguments.empty() )
         return;
 
     for( size_t idx = 0, len = function.Arguments.size(); idx < len; idx++ )

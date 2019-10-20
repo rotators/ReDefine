@@ -7,6 +7,11 @@ set( CMAKE_SKIP_INSTALL_RULES     TRUE )
 
 project( ReDefine )
 
+if( DEFINED ENV{CLANG_TIDY} )
+	message( STATUS "CMAKE_CXX_CLANG_TIDY = $ENV{CLANG_TIDY}" )
+	set( CMAKE_CXX_CLANG_TIDY $ENV{CLANG_TIDY} )
+endif()
+
 add_executable( ReDefine "" )
 target_sources( ReDefine
 	PUBLIC

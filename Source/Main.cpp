@@ -30,7 +30,7 @@ int main( int argc, char** argv )
     int result = EXIT_SUCCESS;
 
     // boring stuff
-    std::setvbuf( stdout, NULL, _IONBF, 0 );
+    std::setvbuf( stdout, nullptr, _IONBF, 0 );
     CmdLine*  cmd = new CmdLine( argc, argv );
     ReDefine* redefine = new ReDefine();
 
@@ -162,7 +162,7 @@ int main( int argc, char** argv )
 
         int formatting = redefine->Config->GetInt( section, "FormatFunctions", -1 );
         if( formatting >= ReDefine::SCRIPT_FORMAT_MIN && formatting <= ReDefine::SCRIPT_FORMAT_MAX )
-            redefine->ScriptFormatting = (ReDefine::ScriptCodeFormat)formatting;
+            redefine->ScriptFormatting = static_cast<ReDefine::ScriptCodeFormat>(formatting);
         redefine->ScriptFormattingForced = redefine->Config->GetBool( section, "FormatFunctionsForced", redefine->ScriptFormattingForced );
 
         //
@@ -257,7 +257,7 @@ int main( int argc, char** argv )
     // show counters, if available
     //
 
-    if( redefine->Status.Process.Counters.size() )
+    if( !redefine->Status.Process.Counters.empty() )
     {
         for( const auto& counter : redefine->Status.Process.Counters )
         {
