@@ -21,8 +21,9 @@ jobs:
     - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine }
     - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine }
     - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine }
-    - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
-    - { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
+    # https://github.com/actions/virtual-environments/issues/68
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
     - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
     - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
 
@@ -35,8 +36,8 @@ jobs:
 
   - name: Clone repository
     uses: actions/checkout@master
-    with:
-     fetch-depth: 1
+#   with:
+#    fetch-depth: 1
 
   - name: Build
     run:  cmake -P Build.cmake
