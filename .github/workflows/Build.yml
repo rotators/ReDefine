@@ -32,7 +32,7 @@ jobs:
   # required by gcc *and* clang
   - name: Install additional software
     if:   runner.os == 'Linux' && matrix.cfg.platform == 'x32'
-    run:  sudo apt install -y gcc-multilib g++-multilib && hash -r
+    run:  sudo apt update && sudo apt install -y gcc-multilib g++-multilib && hash -r
 
   - name: Clone repository
     uses: actions/checkout@master
