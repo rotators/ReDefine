@@ -81,7 +81,7 @@ bool ReDefine::ReadConfigDefines( const std::string& sectionPrefix )
                     continue;
                 }
 
-                Headers.push_back( Header( values[0], type, values[1], values.size() >= 3 ? values[2] : std::string(), values.size() >= 4 ? values[3] : std::string() ) );
+                Headers.emplace_back( values[0], type, values[1], values.size() >= 3 ? values[2] : std::string(), values.size() >= 4 ? values[3] : std::string() );
             }
         }
         // [Defines:TYPE] //
@@ -388,7 +388,7 @@ bool ReDefine::ProcessValue( const std::string& type, std::string& value, const 
 
     if( !silent )
     {
-        std::string unknown = useVal ? std::to_string( (long long)val ) : value;
+        std::string unknown = useVal ? std::to_string( val ) : value;
 
         WARNING( nullptr, "unknown %s<%s>", type.c_str(), unknown.c_str() );
         Status.Process.Counters["!Unknown " + type + "!"][unknown]++;

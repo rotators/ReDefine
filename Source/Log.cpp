@@ -46,7 +46,7 @@ static void Print( ReDefine* redefine, const std::string& log, const char* prefi
         if( redefine->Status.Current.LineNumber )
         {
             full += ":";
-            full += std::to_string( (long long)redefine->Status.Current.LineNumber );
+            full += std::to_string( redefine->Status.Current.LineNumber );
         }
         full += ">";
     }

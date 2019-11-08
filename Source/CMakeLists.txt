@@ -5,7 +5,7 @@ set( CMAKE_CXX_STANDARD           14 )
 set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
 
-project( ReDefine )
+project( ReDefine LANGUAGES CXX )
 
 if( DEFINED ENV{CLANG_TIDY} )
 	message( STATUS "CMAKE_CXX_CLANG_TIDY = $ENV{CLANG_TIDY}" )

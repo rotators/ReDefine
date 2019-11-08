@@ -16,7 +16,7 @@ ReDefine::ScriptCode::ScriptCode( const unsigned int& flags /* = 0 */ ) :
     Full( "" ),
     Name( "" ),
     ReturnType( "" ),
-    Arguments(),
+//  Arguments(),
     Operator( "" ),
     OperatorArgument( "" )
 {}
@@ -362,7 +362,7 @@ bool ReDefine::ScriptCode::CallEditDo( const std::string& name, std::vector<std:
 
 void ReDefine::ScriptCode::Change( const std::string& left, const std::string& right /* = std::string() */ )
 {
-    Changes.push_back( std::make_pair( left, right ) );
+    Changes.emplace_back( left, right );
 }
 
 void ReDefine::ScriptCode::ChangeLog()
@@ -395,9 +395,7 @@ void ReDefine::ScriptCode::ChangeLog()
 
 ReDefine::ScriptEdit::ScriptEdit() :
     Debug( false ),
-    Name( "" ),
-    Conditions(),
-    Results()
+    Name( "" )
 {}
 
 // script edit conditions
@@ -515,7 +513,7 @@ static bool IfArgumentsSize( const ReDefine::ScriptCode& code, const std::vector
 }
 
 // ? IfEdited
-static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     return code.IsFlag( ReDefine::SCRIPT_CODE_EDITED );
 }
@@ -577,13 +575,13 @@ static bool IfName( const ReDefine::ScriptCode& code, const std::vector<std::str
 }
 
 // ? IfNotEdited
-static bool IfNotEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool IfNotEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     return !code.IsFlag( ReDefine::SCRIPT_CODE_EDITED );
 }
 
 // ? IfOperator
-static bool IfOperator( const ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool IfOperator( const ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -821,7 +819,7 @@ static bool DoArgumentLookup( ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? DoArgumentsClear
-static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return false;
@@ -1078,7 +1076,7 @@ static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string
 }
 
 // ? DoOperatorClear
-static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return false;
@@ -1105,7 +1103,7 @@ static bool DoOperatorSet( ReDefine::ScriptCode& code, const std::vector<std::st
 }
 
 // ? DoRestart
-static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string>& )
+static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     code.SetFlag( ReDefine::SCRIPT_CODE_RESTART );
 

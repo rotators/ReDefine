@@ -8,10 +8,11 @@
 
 //
 
-ReDefine::SStatus::SCurrent::SCurrent()
-{
-    Clear();
-}
+ReDefine::SStatus::SCurrent::SCurrent() :
+    File( "" ),
+    Line( "" ),
+    LineNumber( 0 )
+{}
 
 void ReDefine::SStatus::SCurrent::Clear()
 {
@@ -21,10 +22,12 @@ void ReDefine::SStatus::SCurrent::Clear()
 
 //
 
-ReDefine::SStatus::SProcess::SProcess()
-{
-    Clear();
-}
+ReDefine::SStatus::SProcess::SProcess() :
+    Files( 0 ),
+    Lines( 0 ),
+    FilesChanges( 0 ),
+    LinesChanges( 0 )
+{}
 
 void ReDefine::SStatus::SProcess::Clear()
 {
@@ -132,7 +135,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
         char bom[3] = { 0, 0, 0 };
         fstream.read( bom, sizeof(bom) );
         if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
-            fstream.seekg( 0, fstream.beg );
+            fstream.seekg( 0, std::ifstream::beg );
 
         std::string line;
         while( !fstream.eof() )
@@ -177,7 +180,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
         char bom[3] = { 0, 0, 0 };
         fstream.read( bom, sizeof(bom) );
         if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
-            fstream.seekg( 0, fstream.beg );
+            fstream.seekg( 0, std::ifstream::beg );
         else
             size -= 3;
 
