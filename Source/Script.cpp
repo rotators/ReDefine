@@ -1812,7 +1812,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
             const bool        debug = edit.Debug ? edit.Debug : DebugChanges;
 
             bool              run = false, first = true;
-            const std::string change = "script edit<" +  timing + ":" + std::to_string( (long long)it.first ) + ":" + edit.Name + ">";
+            const std::string change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
             std::string       before, after, log;
 
             // all conditions needs to be satisfied

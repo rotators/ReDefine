@@ -3,7 +3,7 @@
 #include "ReDefine.h"
 #include "StdFilesystem.h"
 
-static std::regex IsSimpleMath( "^([\\-]?[0-9]+)[\\t\\ ]*(\\*|\\/|\\+|\\-)[\\t\\ ]*([\\-]?[0-9]+)$" );
+static const std::regex IsSimpleMath( "^([\\-]?[0-9]+)[\\t\\ ]*(\\*|\\/|\\+|\\-)[\\t\\ ]*([\\-]?[0-9]+)$" );
 
 ReDefine::Header::Header( const std::string& filename, const std::string& type, const std::string& prefix, const std::string& suffix, const std::string& group ) :
     Filename( filename ),

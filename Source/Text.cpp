@@ -230,6 +230,9 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         variable.Operator = it->str( 2 );
         variable.OperatorArgument = it->str( 3 );
 
+        if( !IsOperator( variable.Operator ) )
+            continue;
+
         result.push_back( variable );
         count++;
     }
@@ -442,11 +445,11 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
 
                 DEBUG( __FUNCTION__, "FUNCTION(%u)", funcIdx );
                 if( ignore )
-                    DEBUG( __FUNCTION__, "IGNORED(%s%s%s)", balance ? std::to_string( (long long)balance ).c_str() : "", quote ? "Q" : "", parens ? "P" : "" );
+                    DEBUG( __FUNCTION__, "IGNORED(%s%s%s)", balance ? std::to_string( balance ).c_str() : "", quote ? "Q" : "", parens ? "P" : "" );
 
                 Status.Current.Clear();
 
-                std::vector<std::string> argumentsVec;
+                std::vector<std::string> argumentsVec( arguments.size() );
                 for( const ScriptCode::Argument& _argument : arguments )
                 {
                     argumentsVec.push_back( _argument.Arg );
