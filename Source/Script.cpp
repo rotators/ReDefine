@@ -1214,7 +1214,8 @@ void ReDefine::FinishScript( bool finishCallbacks /* = true */ )
     EditBefore.clear();
     EditAfter.clear();
 
-    DebugChanges = UseParser = false;
+    DebugChanges = SCRIPT_DEBUG_CHANGES_NONE;
+    UseParser = false;
 }
 
 // reading
@@ -1809,11 +1810,12 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
     {
         for( const ScriptEdit& edit : it.second )
         {
-            const bool        debug = edit.Debug ? edit.Debug : DebugChanges;
+            const ScriptDebugChanges                         debug = edit.Debug ? SCRIPT_DEBUG_CHANGES_ALL : DebugChanges;
 
-            bool              run = false, first = true;
-            const std::string change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
-            std::string       before, after, log;
+            bool                                             run = false, first = true;
+            const std::string                                change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
+            std::string                                      before, after, log, codeChangeLeft, codeChangeRight;
+            std::vector<std::pair<std::string, std::string>> codeChanges;
 
             // all conditions needs to be satisfied
             for( const ScriptEdit::Action& condition: edit.Conditions )
@@ -1821,7 +1823,15 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 run = code.CallEditIf( condition.Name, condition.Values );
 
                 if( debug && ( (first && run) || !first ) )
-                    code.Change( change + " " + condition.Name + (!condition.Values.empty() ? (":" + TextGetJoined( condition.Values, "," ) ) : ""), run ? "true" : "false" );
+                {
+                    codeChangeLeft = change + " " + condition.Name + (!condition.Values.empty() ? (":" + TextGetJoined( condition.Values, "," ) ) : "");
+                    codeChangeRight = run ? "true" : "false";
+
+                    if( debug == SCRIPT_DEBUG_CHANGES_ALL )
+                        code.Change( codeChangeLeft, codeChangeRight );
+                    else
+                        codeChanges.emplace_back( codeChangeLeft, codeChangeRight );
+                }
 
                 if( !run )
                     break;
@@ -1843,7 +1853,15 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 if( !run )
                 {
                     if( debug )
+                    {
+                        // log all cached changes on error, ignoring DebugChanges level
+                        for( const auto& change : codeChanges )
+                        {
+                            code.Change( change.first, change.second );
+                        }
+
                         code.Change( change + log, "(ERROR)" );
+                    }
 
                     WARNING( nullptr, "script edit<%s> aborted : result<%s> failed", edit.Name.c_str(), result.Name.c_str() );
 
@@ -1851,7 +1869,23 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 }
 
                 if( debug )
-                    code.Change( change + log, code.GetFullString() );
+                {
+                    if( debug == SCRIPT_DEBUG_CHANGES_ONLY && TextGetPacked( codeOld.GetFullString() ) != TextGetPacked( code.GetFullString() ) )
+                    {
+                        if( !codeChanges.empty() )
+                        {
+                            for( const auto& change : codeChanges )
+                            {
+                                code.Change( change.first, change.second );
+                            }
+
+                            codeChanges.clear();
+                        }
+                        code.Change( change + log, code.GetFullString() );
+                    }
+                    else if( debug == SCRIPT_DEBUG_CHANGES_ALL )
+                        code.Change( change + log, code.GetFullString() );
+                }
 
                 code.SetFlag( SCRIPT_CODE_EDITED );
 

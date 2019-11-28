@@ -312,13 +312,19 @@ public:
         ScriptEdit();
     };
 
+    enum ScriptDebugChanges : unsigned char
+    {
+        SCRIPT_DEBUG_CHANGES_NONE = 0,
+        SCRIPT_DEBUG_CHANGES_ONLY,
+        SCRIPT_DEBUG_CHANGES_ALL
+    };
 
     std::map<std::string, ScriptEditIf>             EditIf;
     std::map<std::string, ScriptEditDo>             EditDo;
     std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
     std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
 
-    bool                                            DebugChanges;
+    ScriptDebugChanges                              DebugChanges;
     bool                                            UseParser;
     bool                                            ScriptFormattingForced;
     ScriptCodeFormat                                ScriptFormatting;

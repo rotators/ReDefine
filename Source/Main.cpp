@@ -18,7 +18,7 @@ void Usage( ReDefine* redefine )
     redefine->SHOW( "  --log-warning [filename]   Changes location of warnings logfile (default: %s)", redefine->LogWarning.c_str() );
     redefine->SHOW( "  --log-debug [filename]     Changes location of debug logfile (default: %s)", redefine->LogDebug.c_str() );
     redefine->SHOW( "  --ro, --read, --read-only  Enables read-only mode; scripts files won't be changed (default: disabled)" );
-    redefine->SHOW( "  --debug-changes            Enables debug mode; (default: %s)", redefine->DebugChanges ? "enabled" : "disabled" );
+    redefine->SHOW( "  --debug-changes [level]    Enables debug mode; 0=off, 1=only if script code changed, 2=full (default: %u)", redefine->DebugChanges );
     #if defined (HAVE_PARSER)
     redefine->SHOW( "  --parser" );
     #endif
@@ -150,9 +150,12 @@ int main( int argc, char** argv )
         // read additional configuration
         //
 
-        bool debugChanges = redefine->Config->GetBool( section, "DebugChanges", false );
+        int debugChanges = redefine->Config->GetInt( section, "DebugChanges", false );
         if( cmd->IsOption( "debug-changes" ) )
-            debugChanges = true;
+            debugChanges = cmd->GetInt( "debug-changes", redefine->DebugChanges );
+
+        if( debugChanges < ReDefine::SCRIPT_DEBUG_CHANGES_NONE || debugChanges > ReDefine::SCRIPT_DEBUG_CHANGES_ALL )
+            debugChanges = redefine->DebugChanges;
 
         #if defined (HAVE_PARSER)
         bool parser = redefine->Config->GetBool( section, "Parser", false );
@@ -197,7 +200,7 @@ int main( int argc, char** argv )
             // additional tuning
             //
 
-            redefine->DebugChanges = debugChanges;
+            redefine->DebugChanges = static_cast<ReDefine::ScriptDebugChanges>(debugChanges);
 
             #if defined (HAVE_PARSER)
             redefine->UseParser = parser;

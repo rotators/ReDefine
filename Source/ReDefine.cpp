@@ -50,7 +50,7 @@ ReDefine::ReDefine() :
     LogFile( "ReDefine.log" ),
     LogWarning( "ReDefine.WARNING.log" ),
     LogDebug( "ReDefine.DEBUG.log" ),
-    DebugChanges( false ),
+    DebugChanges( SCRIPT_DEBUG_CHANGES_NONE ),
     UseParser( false ),
     ScriptFormattingForced( false ),
     ScriptFormatting( SCRIPT_FORMAT_WIDE )
