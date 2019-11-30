@@ -196,14 +196,14 @@ public:
         std::vector<std::string> Defines;
     };
 
-
+    // internal flags set for all ScriptCode
     enum ScriptCodeFlag : unsigned int
     {
         // types
 
         SCRIPT_CODE_RESERVED = 0x001,
-        SCRIPT_CODE_VARIABLE = 0x002,
-        SCRIPT_CODE_FUNCTION = 0x004,
+        SCRIPT_CODE_VARIABLE = 0x002, // set when code looks like a variable
+        SCRIPT_CODE_FUNCTION = 0x004, // set when code looks like a function
 
         //
 
@@ -216,10 +216,10 @@ public:
 
     enum ScriptCodeFormat : unsigned char
     {
-        SCRIPT_FORMAT_UNCHANGED = 0,
-        SCRIPT_FORMAT_WIDE,
-        SCRIPT_FORMAT_MEDIUM,
-        SCRIPT_FORMAT_TIGHT,
+        SCRIPT_FORMAT_UNCHANGED = 0, // func(preserve, original,formatting )
+        SCRIPT_FORMAT_WIDE,          // func( spaces, added, everywhere )
+        SCRIPT_FORMAT_MEDIUM,        // func(spaces, between, arguments)
+        SCRIPT_FORMAT_TIGHT,         // func(no,spaces,allowed)
 
         SCRIPT_FORMAT_MIN = SCRIPT_FORMAT_UNCHANGED,
         SCRIPT_FORMAT_MAX = SCRIPT_FORMAT_TIGHT
@@ -316,7 +316,10 @@ public:
     {
         SCRIPT_DEBUG_CHANGES_NONE = 0,
         SCRIPT_DEBUG_CHANGES_ONLY,
-        SCRIPT_DEBUG_CHANGES_ALL
+        SCRIPT_DEBUG_CHANGES_ALL,
+
+        SCRIPT_DEBUG_CHANGES_MIN  = SCRIPT_DEBUG_CHANGES_NONE,
+        SCRIPT_DEBUG_CHANGES_MAX  = SCRIPT_DEBUG_CHANGES_ALL
     };
 
     std::map<std::string, ScriptEditIf>             EditIf;

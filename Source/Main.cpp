@@ -154,8 +154,6 @@ int main( int argc, char** argv )
         if( cmd->IsOption( "debug-changes" ) )
             debugChanges = cmd->GetInt( "debug-changes", redefine->DebugChanges );
 
-        if( debugChanges < ReDefine::SCRIPT_DEBUG_CHANGES_NONE || debugChanges > ReDefine::SCRIPT_DEBUG_CHANGES_ALL )
-            debugChanges = redefine->DebugChanges;
 
         #if defined (HAVE_PARSER)
         bool parser = redefine->Config->GetBool( section, "Parser", false );
@@ -200,7 +198,8 @@ int main( int argc, char** argv )
             // additional tuning
             //
 
-            redefine->DebugChanges = static_cast<ReDefine::ScriptDebugChanges>(debugChanges);
+            if( debugChanges >= ReDefine::SCRIPT_DEBUG_CHANGES_MIN && debugChanges <= ReDefine::SCRIPT_DEBUG_CHANGES_MAX )
+                redefine->DebugChanges = static_cast<ReDefine::ScriptDebugChanges>(debugChanges);
 
             #if defined (HAVE_PARSER)
             redefine->UseParser = parser;
