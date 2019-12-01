@@ -402,6 +402,7 @@ ReDefine::ScriptEdit::ScriptEdit() :
 
 // ? IfArgumentIs:INDEX,DEFINE
 // ? IfArgumentIs:INDEX,DEFINE,TYPE
+// ! Checks if script function argument at INDEX resolves to DEFINE value.
 static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunctionKnown( __FUNCTION__ ) )
@@ -439,6 +440,7 @@ static bool IfArgumentIs( const ReDefine::ScriptCode& code, const std::vector<st
 }
 
 // ? IfArgumentValue:INDEX,STRING
+// ! Checks if script function argument at INDEX equals STRING.
 static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -455,6 +457,7 @@ static bool IfArgumentValue( const ReDefine::ScriptCode& code, const std::vector
 }
 
 // ? IfArgumentNotValue:INDEX,STRING
+// ! Checks if script function argument at INDEX does not equals STRING.
 static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -471,6 +474,7 @@ static bool IfArgumentNotValue( const ReDefine::ScriptCode& code, const std::vec
 }
 
 // ? IfArgumentsEqual:INDEX,INDEX
+// ! Checks if script function arguments at INDEXes are equal.
 static bool IfArgumentsEqual( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -497,6 +501,7 @@ static bool IfArgumentsEqual( const ReDefine::ScriptCode& code, const std::vecto
 }
 
 // ? IfArgumentsSize:UINT
+// ! Checks if script function have UINT arguments.
 static bool IfArgumentsSize( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -513,6 +518,7 @@ static bool IfArgumentsSize( const ReDefine::ScriptCode& code, const std::vector
 }
 
 // ? IfEdited
+// ! Checks if script code has been processed by any action result.
 static bool IfEdited( const ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     return code.IsFlag( ReDefine::SCRIPT_CODE_EDITED );
@@ -539,6 +545,7 @@ static bool IfFileName( const ReDefine::ScriptCode& code, const std::vector<std:
 // ? IfFunction
 // ? IfFunction:STRING
 // ? IfFunction:STRING_1,...,STRING_N
+// ! Checks if script code is a function. One or more names can be passed to simulate `or` / `||` check.
 // > IfName
 static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -563,6 +570,7 @@ static bool IfFunction( const ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? IfName:STRING
+// ! Checks if script function/variable name equals STRING.
 static bool IfName( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -636,7 +644,8 @@ static bool IfReturnType( const ReDefine::ScriptCode& code, const std::vector<st
 
 // ? IfVariable
 // ? IfVariable:STRING
-// ? IfVariable:STRING_1,...STRING_N
+// ? IfVariable:STRING_1,...,STRING_N
+// ! Checks if script code is a variable. One or more names can be passed to simulate `or` / `||` check.
 // > IfName
 static bool IfVariable( const ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -819,6 +828,7 @@ static bool DoArgumentLookup( ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? DoArgumentsClear
+// ! Removes all script function arguments.
 static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -830,6 +840,7 @@ static bool DoArgumentsClear( ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? DoArgumentsErase:INDEX
+// ! Removes script function argument at INDEX.
 static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -848,6 +859,7 @@ static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std:
 }
 
 // ? DoArgumentsMoveBack:INDEX
+// ! Moves script function argument at INDEX to the end of list.
 // > DoArgumentsErase
 // > DoArgumentsPushBack
 static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
@@ -874,6 +886,7 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
 }
 
 // ? DoArgumentsMoveFront:INDEX
+// ! Moves script function argument at INDEX to the start of list.
 // > DoArgumentsErase
 // > DoArgumentsPushFront
 static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
@@ -901,6 +914,7 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
 
 // ? DoArgumentsPushBack:STRING
 // ? DoArgumentsPushBack:STRING,TYPE
+// ! Adds script function argument as last in list.
 static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -928,6 +942,7 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
 
 // ? DoArgumentsPushFront:STRING,
 // ? DoArgumentsPushFront:STRING,TYPE
+// ! Adds script function argument as first in list.
 static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -953,7 +968,8 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
 }
 
 // ? DoArgumentsResize:UINT
-// > DoArgumentsClear
+// ! Changes script function arguments count to UINT.
+// > DoArgumentsClear (if arguments count is 0)
 static bool DoArgumentsResize( ReDefine::ScriptCode& code, const std::vector<std::string>& values  )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -996,6 +1012,7 @@ static bool DoFileCount( ReDefine::ScriptCode& code, const std::vector<std::stri
 
 // ? DoFunction
 // ? DoFunction:STRING
+// ! Converts script code into function.
 // > DoNameSet
 static bool DoFunction( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
@@ -1013,6 +1030,8 @@ static bool DoFunction( ReDefine::ScriptCode& code, const std::vector<std::strin
 }
 
 // ? DoLogCurrentLine
+// ? DoLogCurrentLine:STRING
+// ! Adds an entry with currently processed script function/variable to one of log files.
 static bool DoLogCurrentLine( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     ReDefine::SStatus::SCurrent previous = code.Parent->Status.Current;
@@ -1061,6 +1080,7 @@ static bool DoNameCount( ReDefine::ScriptCode& code, const std::vector<std::stri
 }
 
 // ? DoNameSet:STRING
+// ! Changes script function/variable name.
 static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1076,6 +1096,7 @@ static bool DoNameSet( ReDefine::ScriptCode& code, const std::vector<std::string
 }
 
 // ? DoOperatorClear
+// ! Removes script function/variable operator.
 static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1088,6 +1109,7 @@ static bool DoOperatorClear( ReDefine::ScriptCode& code, const std::vector<std::
 }
 
 // ? DoOperatorSet:STRING,STRING
+// ! Adds/changes script function/variable operator.
 static bool DoOperatorSet( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1103,6 +1125,7 @@ static bool DoOperatorSet( ReDefine::ScriptCode& code, const std::vector<std::st
 }
 
 // ? DoRestart
+// ! Restarts line processing after applying changes.
 static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string>& /* values */ )
 {
     code.SetFlag( ReDefine::SCRIPT_CODE_RESTART );
@@ -1111,6 +1134,7 @@ static bool DoRestart( ReDefine::ScriptCode& code, const std::vector<std::string
 }
 
 // ? DoReturnSetType:TYPE
+// ! Sets script function/variable return type.
 static bool DoReturnSetType( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
 {
     if( !code.IsBefore( __FUNCTION__ ) )
@@ -1132,6 +1156,7 @@ static bool DoReturnSetType( ReDefine::ScriptCode& code, const std::vector<std::
 
 // ? DoVariable
 // ? DoVariable:STRING
+// ! Converts script code into variable.
 // > DoArgumentsClear
 // > DoNameSet
 static bool DoVariable( ReDefine::ScriptCode& code, const std::vector<std::string>& values )
