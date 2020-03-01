@@ -18,14 +18,14 @@ jobs:
    matrix:
     cfg:
     - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/ReDefine,             artifact: ReDefine-Linux }
-    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine,             artifact: false }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine,             artifact: false }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine,             artifact: false }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine,             artifact: none }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine,             artifact: none }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine,             artifact: none }
     # https://github.com/actions/virtual-environments/issues/68
-    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe, artifact: false }
-    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: false }
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe, artifact: none }
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: none }
     - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe, artifact: ReDefine-Windows }
-    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: false }
+    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: none }
 
   steps:
 
@@ -35,9 +35,7 @@ jobs:
     run:  sudo apt update && sudo apt install -y gcc-multilib g++-multilib && hash -r
 
   - name: Clone repository
-    uses: actions/checkout@v1
-#   with:
-#    fetch-depth: 0
+    uses: actions/checkout@v2
 
   - name: Build
     run:  cmake -P Build.cmake
@@ -59,7 +57,7 @@ jobs:
     shell: bash
 
   - name:  Artifact
-    if:    matrix.cfg.artifact != 'false'
+    if:    matrix.cfg.artifact != 'none'
     uses:  actions/upload-artifact@v1
     with:
      name: ${{ matrix.cfg.artifact }}
