@@ -34,6 +34,7 @@ void ReDefine::ProcessRaw( std::string& line )
 {
     for( const auto& replace : Raw )
     {
-        line = TextGetReplaced( line, replace.first, replace.second );
+        std::string tmp = TextGetReplaced( line, replace.first, replace.second );
+        line = tmp;
     }
 }

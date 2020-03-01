@@ -435,7 +435,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         bool              ignore =  balance > 0 || quote || parens;
         if( funcDebug || ignore )
         {
-            bool spam = func != "for";
+            bool spam = func != "for" && func != "if";
 
             if( spam )
             {

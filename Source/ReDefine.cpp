@@ -53,6 +53,7 @@ ReDefine::ReDefine() :
     DebugChanges( SCRIPT_DEBUG_CHANGES_NONE ),
     UseParser( false ),
     ScriptFormattingForced( false ),
+    ScriptFormattingUnix( false ),
     ScriptFormatting( SCRIPT_FORMAT_WIDE )
 {}
 

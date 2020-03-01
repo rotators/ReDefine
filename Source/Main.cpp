@@ -161,6 +161,8 @@ int main( int argc, char** argv )
             parser = true;
         #endif
 
+        redefine->ScriptFormattingUnix = redefine->Config->GetBool( section, "UnixNewlines", redefine->ScriptFormattingUnix );
+
         int formatting = redefine->Config->GetInt( section, "FormatFunctions", -1 );
         if( formatting >= ReDefine::SCRIPT_FORMAT_MIN && formatting <= ReDefine::SCRIPT_FORMAT_MAX )
             redefine->ScriptFormatting = static_cast<ReDefine::ScriptCodeFormat>(formatting);

@@ -330,6 +330,7 @@ public:
     ScriptDebugChanges                              DebugChanges;
     bool                                            UseParser;
     bool                                            ScriptFormattingForced;
+    bool                                            ScriptFormattingUnix;
     ScriptCodeFormat                                ScriptFormatting;
 
     void InitScript();

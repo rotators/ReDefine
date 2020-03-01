@@ -1518,7 +1518,7 @@ public:
     Status.Current.File = filename;
 
     bool                 updateFile = false, conflict = false, restart = false, codeChanged = false;
-    std::string          content, newline = "\r\n";
+    std::string          content, newline = ScriptFormattingUnix ? "\n" : "\r\n";
     unsigned int         changes = 0;
     unsigned short       restartCount = 0;
     const unsigned short restartLimit = 1000;
