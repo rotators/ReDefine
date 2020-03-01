@@ -17,15 +17,15 @@ jobs:
    fail-fast: false
    matrix:
     cfg:
-    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/ReDefine }
-    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine }
-    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x32, redefine: Build/ReDefine,             artifact: ReDefine-Linux }
+    - { os: ubuntu-latest, name: GNU,    cc: gcc,   cxx: g++,     platform: x64, redefine: Build/ReDefine,             artifact: false }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x32, redefine: Build/ReDefine,             artifact: false }
+    - { os: ubuntu-latest, name: Clang,  cc: clang, cxx: clang++, platform: x64, redefine: Build/ReDefine,             artifact: false }
     # https://github.com/actions/virtual-environments/issues/68
-    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
-    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
-    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe }
-    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe }
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe, artifact: false }
+    # { os: windows-2016,  name: VS2017, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: false }
+    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x32, redefine: Build/Release/ReDefine.exe, artifact: ReDefine-Windows }
+    - { os: windows-2019,  name: VS2019, cc: cl,    cxx: cl,      platform: x64, redefine: Build/Release/ReDefine.exe, artifact: false }
 
   steps:
 
@@ -53,7 +53,17 @@ jobs:
            :
            file ${{ matrix.cfg.redefine }}
            ldd  ${{ matrix.cfg.redefine }}
+
+           mkdir -p ReDefine
+           cp ${{ matrix.cfg.redefine }} ReDefine
     shell: bash
+
+  - name:  Artifact
+    if:    matrix.cfg.artifact != 'false'
+    uses:  actions/upload-artifact@v1
+    with:
+     name: ${{ matrix.cfg.artifact }}
+     path: ReDefine
 
  ##
 
@@ -73,9 +83,7 @@ jobs:
           done
 
   - name: Clone repository
-    uses: actions/checkout@master
-    with:
-     fetch-depth: 1
+    uses: actions/checkout@v2
 
   - name: scan-build
     run:  scan-build-8 cmake -DBUILD_DIR=Build.ScanBuild -P Build.cmake
