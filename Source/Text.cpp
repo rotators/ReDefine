@@ -437,7 +437,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         {
             bool spam = func != "for" && func != "if";
 
-            if( spam )
+            if( Dev && spam )
             {
                 SStatus::SCurrent prev = Status.Current;
 

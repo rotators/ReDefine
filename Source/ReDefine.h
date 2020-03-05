@@ -36,6 +36,7 @@ public:
     //
 
     Ini*        Config;
+    bool        Dev;
 
     std::string LogFile;
     std::string LogWarning;

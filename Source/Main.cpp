@@ -19,6 +19,7 @@ void Usage( ReDefine* redefine )
     redefine->SHOW( "  --log-debug [filename]     Changes location of debug logfile (default: %s)", redefine->LogDebug.c_str() );
     redefine->SHOW( "  --ro, --read, --read-only  Enables read-only mode; scripts files won't be changed (default: disabled)" );
     redefine->SHOW( "  --debug-changes [level]    Enables debug mode; 0=off, 1=only if script code changed, 2=full (default: %u)", redefine->DebugChanges );
+    redefine->SHOW( "  --dev                      Enables extra debug messages" );
     #if defined (HAVE_PARSER)
     redefine->SHOW( "  --parser" );
     #endif
@@ -78,9 +79,12 @@ int main( int argc, char** argv )
 
     if( redefine->Config->LoadFile( config ) )
     {
+        redefine->Dev = redefine->Config->GetBool( section, "Dev", redefine->Dev );
+        if( cmd->IsOption( "dev" ) )
+            redefine->Dev = true;
+
         //
         // read logfiles configuration
-        // everything
         // empty Log* setting disables saving to file
         //
 

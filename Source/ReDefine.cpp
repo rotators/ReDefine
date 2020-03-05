@@ -47,6 +47,7 @@ void ReDefine::SStatus::Clear()
 
 ReDefine::ReDefine() :
     Config( nullptr ),
+    Dev( false ),
     LogFile( "ReDefine.log" ),
     LogWarning( "ReDefine.WARNING.log" ),
     LogDebug( "ReDefine.DEBUG.log" ),
