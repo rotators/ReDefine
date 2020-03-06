@@ -299,8 +299,8 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                 // update arguments list
                 else if( ch == ',' && balance == 1 )
                 {
-                    argument.Arg = TextGetTrimmed( arg );
                     argument.Raw = arg;
+                    argument.Arg = TextGetTrimmed( arg );
                     argument.Type = "?";
                     arguments.push_back( argument );
 

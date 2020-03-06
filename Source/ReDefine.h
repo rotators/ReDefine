@@ -230,8 +230,8 @@ public:
     {
         struct Argument
         {
-            std::string Arg; // trimmed
             std::string Raw; // original
+            std::string Arg; // trimmed
             std::string Type;
         };
 

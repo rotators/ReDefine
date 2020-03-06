@@ -853,6 +853,10 @@ static bool DoArgumentsErase( ReDefine::ScriptCode& code, const std::vector<std:
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
+    // try to keep original formatting of 1st argument
+    if( code.Parent->ScriptFormatting == ReDefine::SCRIPT_FORMAT_UNCHANGED && idx == 0 && code.Arguments.size() >= 2 )
+        code.Arguments[1].Raw = code.Parent->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[1].Arg );
+
     code.Arguments.erase( code.Arguments.begin() + idx );
 
     return true;
@@ -901,13 +905,25 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string arg = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
+    std::string arg0, arg1, type = code.Arguments[idx].Type;
+    // try to keep original formatting of arguments
+    if( code.Parent->ScriptFormatting == ReDefine::SCRIPT_FORMAT_UNCHANGED && code.Arguments.size() >= 2 )
+    {
+        arg0 = code.Parent->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[idx].Arg );
+        arg1 = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, code.Arguments.front().Arg );
+    }
+
+    if( arg0.empty() )
+        arg0 = code.Arguments[idx].Arg;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
 
-    if( !code.CallEditDo( "DoArgumentsPushFront", { arg, type } ) )
+    if( !code.CallEditDo( "DoArgumentsPushFront", { arg0, type } ) )
         return false;
+
+    if( !arg1.empty() )
+        code.Arguments[1].Raw = arg1;
 
     return true;
 }
@@ -932,7 +948,8 @@ static bool DoArgumentsPushBack( ReDefine::ScriptCode& code, const std::vector<s
         return false;
 
     ReDefine::ScriptCode::Argument argument;
-    argument.Arg = argument.Raw = values[0];
+    argument.Raw = values[0];
+    argument.Arg = code.Parent->TextGetTrimmed( values[0] );
     argument.Type = type;
 
     code.Arguments.push_back( argument );
@@ -960,7 +977,8 @@ static bool DoArgumentsPushFront( ReDefine::ScriptCode& code, const std::vector<
         return false;
 
     ReDefine::ScriptCode::Argument argument;
-    argument.Arg = argument.Raw = values[0];
+    argument.Raw = values[0];
+    argument.Arg = code.Parent->TextGetTrimmed( values[0] );
     argument.Type = type;
     code.Arguments.insert( code.Arguments.begin(), argument );
 
