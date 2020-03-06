@@ -878,7 +878,12 @@ static bool DoArgumentsMoveBack( ReDefine::ScriptCode& code, const std::vector<s
     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
         return false;
 
-    std::string arg = code.Arguments[idx].Arg, type = code.Arguments[idx].Type;
+    std::string arg, type = code.Arguments[idx].Type;
+    // try to keep original formatting of arguments
+    if( code.Parent->ScriptFormatting == ReDefine::SCRIPT_FORMAT_UNCHANGED && code.Arguments.size() >= 2 )
+        arg = code.Parent->TextGetReplaced( code.Arguments.back().Raw, code.Arguments.back().Arg, code.Arguments[idx].Arg );
+    else
+        arg = code.Arguments[idx].Arg;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
         return false;
@@ -912,8 +917,7 @@ static bool DoArgumentsMoveFront( ReDefine::ScriptCode& code, const std::vector<
         arg0 = code.Parent->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[idx].Arg );
         arg1 = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, code.Arguments.front().Arg );
     }
-
-    if( arg0.empty() )
+    else
         arg0 = code.Arguments[idx].Arg;
 
     if( !code.CallEditDo( "DoArgumentsErase", { values[0] } ) )
