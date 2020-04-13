@@ -16,8 +16,14 @@ foreach( file IN LISTS found_tests )
 
 endforeach()
 
+if( CMAKE_BUILD_TYPE )
+	set( TEST_CONFIG "${CMAKE_BUILD_TYPE}" )
+else()
+	set( TEST_CONFIG "Release" )
+endif()
+
 add_custom_target( ReDefine.Test
     DEPENDS ReDefine ${found_tests}
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    COMMAND ${CMAKE_CTEST_COMMAND} --build-config ${TEST_CONFIG} --output-on-failure
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
