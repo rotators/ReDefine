@@ -90,23 +90,7 @@ jobs:
   - name: scan-build
     run:  scan-build-8 cmake -DBUILD_DIR=Build.ScanBuild -P Build.cmake || true
 
-  - name: clang-tidy
-    run:  cmake -DBUILD_DIR=Build.ClangTidy -P Build.cmake
-    env:
-     CLANG_TIDY: clang-tidy-8
-
-# - name: Prepare artifact
-#   if:    matrix.cfg.os == 'windows-2016' && matrix.cfg.platform == 'x32'
-#   run:   |
-#          :
-#          7z a ReDefine.zip $GITHUB_WORKSPACE/${{ matrix.cfg.redefine }}
-#          7z a ReDefine.zip Source
-#          7z l ReDefine.zip
-#   shell: bash
-#
-# - name: Upload artifact
-#   if:    runner.os == 'Windows' && matrix.cfg.platform == 'x32'
-#   uses: actions/upload-artifact@master
-#   with:
-#    name: ReDefine
-#    path: ReDefine.zip
+# - name: clang-tidy
+#   run:  cmake -DBUILD_DIR=Build.ClangTidy -P Build.cmake
+#   env:
+#    CLANG_TIDY: clang-tidy-8
