@@ -13,7 +13,7 @@ void Usage( ReDefine* redefine )
     redefine->SHOW( "  --help                     Short summary of available options" );
     redefine->SHOW( "  --config [filename]        Changes location of configuration file (default: ReDefine.cfg)" );
     redefine->SHOW( "  --headers [directory]      Changes location of scripts headers directory (default: current directory)" );
-    redefine->SHOW( "  --scripts[directory]       Changes location of scripts directory (default: current directory)" );
+    redefine->SHOW( "  --scripts [directory]      Changes location of scripts directory (default: current directory)" );
     redefine->SHOW( "  --log-file [filename]      Changes location of general logfile (default: %s)", redefine->LogFile.c_str() );
     redefine->SHOW( "  --log-warning [filename]   Changes location of warnings logfile (default: %s)", redefine->LogWarning.c_str() );
     redefine->SHOW( "  --log-debug [filename]     Changes location of debug logfile (default: %s)", redefine->LogDebug.c_str() );

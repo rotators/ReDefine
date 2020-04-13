@@ -56,6 +56,10 @@ jobs:
            cp ${{ matrix.cfg.redefine }} ReDefine
     shell: bash
 
+  - name:  Test
+    run:   cmake --build Build --target ReDefine.Test
+    shell: bash
+
   - name:  Artifact
     if:    matrix.cfg.artifact != 'none'
     uses:  actions/upload-artifact@v1

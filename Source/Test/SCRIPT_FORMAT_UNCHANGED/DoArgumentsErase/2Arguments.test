@@ -1,0 +1,3 @@
+RunAfter IfFunction DoArgumentsErase:0
+f(a, b);
+f(b);

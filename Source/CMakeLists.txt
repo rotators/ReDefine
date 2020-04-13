@@ -1,9 +1,14 @@
 cmake_minimum_required( VERSION 3.7.2 FATAL_ERROR ) # cannot go higher due to nuremberg setup
 
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
-set( CMAKE_CXX_STANDARD           14 )
 set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
+
+if( "${CMAKE_GENERATOR}" STREQUAL "MinGW Makefiles" )
+	set( CMAKE_CXX_STANDARD           17 )
+else()
+	set( CMAKE_CXX_STANDARD           14 )
+endif()
 
 project( ReDefine LANGUAGES CXX )
 
@@ -172,6 +177,8 @@ function( StdFilesystem target )
 endfunction()
 
 StdFilesystem( ReDefine )
+
+add_subdirectory( Test )
 
 # Prettify IDE
 
