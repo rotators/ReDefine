@@ -57,7 +57,7 @@ jobs:
     shell: bash
 
   - name:  Test
-    run:   cmake --build Build --target ReDefine.Test
+    run:   cmake --build Build --config Release --target ReDefine.Test
     shell: bash
 
   - name:  Artifact
