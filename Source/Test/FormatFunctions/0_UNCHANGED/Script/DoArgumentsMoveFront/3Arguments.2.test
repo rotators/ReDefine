@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentsMoveFront:2
+ORIGIN f(a, b, c);
+EXPECT f(c, a, b);

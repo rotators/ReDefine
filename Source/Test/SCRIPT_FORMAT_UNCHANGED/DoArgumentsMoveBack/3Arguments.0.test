@@ -1,3 +1,0 @@
-RunAfter IfFunction DoArgumentsMoveBack:0
-f(a, b, c);
-f(b, c, a);

@@ -1,3 +1,0 @@
-RunAfter IfFunction DoArgumentsErase:1
-f(a, b, c);
-f(a, c);

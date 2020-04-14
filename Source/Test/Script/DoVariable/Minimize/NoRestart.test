@@ -1,0 +1,4 @@
+SCRIPT Run1 = RunAfter IfFunction:func DoVariable:var
+SCRIPT Run2 = RunAfter IfFunction:f IfArgumentIs:0,var IfArgumentIs:1,var DoVariable:F
+ORIGIN f( func(x), func(y) );
+EXPECT f( var, var );
