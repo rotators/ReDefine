@@ -1,3 +1,7 @@
+CONFIG [Defines:ITEM_PID]
+CONFIG 252 = PID_ANNA_GOLD_LOCKET
+CONFIG [Function]
+CONFIG obj_is_carrying_obj_pid = ? ITEM_PID
 SCRIPT GetItem       = RunAfter IfFunction:obj_carrying_pid_obj DoNameSet:get_item
 SCRIPT GetItemCount  = RunAfter IfFunction:obj_is_carrying_obj_pid DoNameSet:get_item_count
 SCRIPT SelfItem      = RunAfter IfFunction:get_item IfArgumentValue:0,self_obj DoNameSet:self_item DoArgumentsErase:0

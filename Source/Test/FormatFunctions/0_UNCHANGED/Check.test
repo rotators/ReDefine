@@ -1,0 +1,4 @@
+CONFIG FormatFunctions = 0
+CONFIG FormatFunctionsForced = true
+ORIGIN f(a,b, c);
+EXPECT f(a,b, c);
