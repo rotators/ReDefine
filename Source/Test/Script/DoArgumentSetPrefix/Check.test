@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentSetPrefix:0,cb
+ORIGIN f( a );
+EXPECT f( cba );

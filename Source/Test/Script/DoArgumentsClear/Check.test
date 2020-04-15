@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentsClear
+ORIGIN f( a, b, c );
+EXPECT f();

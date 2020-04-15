@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentsErase:1
+ORIGIN f( a, b );
+EXPECT f( a );
