@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentsPushBack:b
+ORIGIN f( a );
+EXPECT f( a, b );

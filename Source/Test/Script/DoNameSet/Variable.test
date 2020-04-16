@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfVariable DoNameSet:var
+ORIGIN v + 1;
+EXPECT var + 1;

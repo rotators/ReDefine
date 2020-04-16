@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoArgumentsResize:4
+ORIGIN f( a, b, c );
+EXPECT f( a, b, c, /* not set */ );

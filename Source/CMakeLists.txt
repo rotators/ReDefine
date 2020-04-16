@@ -147,7 +147,6 @@ function( StdFilesystem target )
 						if( "${include}" STREQUAL "filesystem" )
 							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM )
 							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM_NAMESPACE=${namespace} )
-
 						else()
 							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM )
 							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM_NAMESPACE=${namespace} )
