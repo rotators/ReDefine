@@ -83,15 +83,37 @@ if( TEST_SCRIPT )
 	endforeach()
 endif()
 
+message( "" )
+message( STATUS "ReDefine run" )
+message( "" )
 file( WRITE "${PWD}/Run/ReDefine.ssl" "${TEST_ORIGIN}" )
 
 execute_process(
 	COMMAND ${REDEFINE} --debug-changes 1
 	WORKING_DIRECTORY "${PWD}/Run"
+	RESULT_VARIABLE exitcode
 )
 
 file( STRINGS "${PWD}/Run/ReDefine.ssl" lines )
 list( GET lines 0 result )
+
+if( NOT exitcode EQUAL 0 )
+	find_program( GDB gdb )
+	if( GDB )
+		message( "" )
+		message( STATUS "ReDefine+GDB run" )
+		message( "" )
+		file( WRITE "${PWD}/Run/ReDefine.ssl" "${TEST_ORIGIN}" )
+
+		execute_process(
+			COMMAND ${GDB} -return-child-result -ex "catch throw" -ex "run" -ex "backtrace full" -ex "quit" --args ${REDEFINE} --debug-changes 2
+			WORKING_DIRECTORY "${PWD}/Run"
+		)
+
+		file( STRINGS "${PWD}/Run/ReDefine.ssl" lines )
+		list( GET lines 0 result )
+	endif()
+endif()
 
 if( NOT "${result}" STREQUAL "${TEST_EXPECT}" )
 	message( "" )
