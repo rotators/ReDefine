@@ -8,6 +8,10 @@ on:
   - '**.cmake'
  pull_request:
 
+defaults:
+ run:
+  shell: bash
+
 jobs:
 
  Build:
@@ -46,23 +50,21 @@ jobs:
      MATRIX_OS:       ${{ matrix.cfg.os }}
      MATRIX_PLATFORM: ${{ matrix.cfg.platform }}
 
-  - name:  Build check
-    run:   |
-           :
-           file ${{ matrix.cfg.redefine }}
-           ldd  ${{ matrix.cfg.redefine }}
+  - name: Build check
+    run:  |
+          :
+          file ${{ matrix.cfg.redefine }}
+          ldd  ${{ matrix.cfg.redefine }}
 
-           mkdir -p ReDefine
-           cp ${{ matrix.cfg.redefine }} ReDefine
-    shell: bash
+          mkdir -p ReDefine
+          cp ${{ matrix.cfg.redefine }} ReDefine
 
-  - name:  Test
-    run:   cmake --build Build --config Release --target ReDefine.Test
-    shell: bash
+  - name: Test
+    run:  cmake --build Build --config Release --target ReDefine.Test
 
-  - name:  Artifact
-    if:    matrix.cfg.artifact != 'none'
-    uses:  actions/upload-artifact@v1
+  - name: Artifact
+    if:   matrix.cfg.artifact != 'none'
+    uses: actions/upload-artifact@v1
     with:
      name: ${{ matrix.cfg.artifact }}
      path: ReDefine
