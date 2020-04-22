@@ -1,7 +1,7 @@
-#include "FOClassic/CommandLine.h"
-#include "FOClassic/Ini.h"
+#include "CommandLine.h"
+#include "../Ini.h"
 
-#include "ReDefine.h"
+#include "../ReDefine.h"
 
 void Usage( ReDefine* redefine )
 {

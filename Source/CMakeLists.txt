@@ -10,6 +10,8 @@ else()
 	set( CMAKE_CXX_STANDARD           14 )
 endif()
 
+list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake" )
+
 project( ReDefine LANGUAGES CXX )
 
 if( DEFINED ENV{CLANG_TIDY} )
@@ -17,14 +19,15 @@ if( DEFINED ENV{CLANG_TIDY} )
 	set( CMAKE_CXX_CLANG_TIDY $ENV{CLANG_TIDY} )
 endif()
 
-add_executable( ReDefine "" )
-target_sources( ReDefine
+include( StdFilesystem )
+
+add_library( ReDefineLib STATIC )
+target_sources( ReDefineLib
 	PUBLIC
 		${CMAKE_CURRENT_LIST_DIR}/ReDefine.h
 
 	PRIVATE
 		${CMAKE_CURRENT_LIST_FILE}
-		Main.cpp
 
 		Defines.cpp
 		Functions.cpp
@@ -33,15 +36,23 @@ target_sources( ReDefine
 		Raw.cpp
 		ReDefine.cpp
 		Script.cpp
-		StdFilesystem.h
 		Text.cpp
 		Variables.cpp
 
 		# FOClassic
-		FOClassic/CommandLine.cpp
-		FOClassic/CommandLine.h
-		FOClassic/Ini.cpp
-		FOClassic/Ini.h
+		Ini.cpp
+		Ini.h
+)
+
+add_executable( ReDefine "" )
+target_sources( ReDefine
+	PRIVATE
+		${CMAKE_CURRENT_LIST_FILE}
+		Executable/Main.cpp
+
+		# FOClassic
+		Executable/CommandLine.cpp
+		Executable/CommandLine.h
 )
 
 if( EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.cpp" AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.h" )
@@ -54,15 +65,19 @@ if( EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.cpp" AND EXISTS "${CMAKE_CURRENT_LI
 	target_compile_definitions( ReDefine PRIVATE HAVE_PARSER )
 endif()
 
+target_link_libraries( ReDefine PRIVATE ReDefineLib )
+
 if( MSVC )
 	set( pdb "ReDefine.pdb" )
 	set( pdb_public "ReDefine.pdb.PUBLIC" )
 
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_FLAGS "/Zi " )
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/DEBUG /PDBSTRIPPED:$(ConfigurationName)/${pdb_public} /PDBALTPATH:${pdb} " )
+	foreach( target IN ITEMS ReDefine ReDefineLib )
+		set_property( TARGET ${target} APPEND_STRING PROPERTY COMPILE_FLAGS "/Zi " )
 
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY COMPILE_FLAGS "/MT " )
-	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/OPT:REF " )
+		set_property( TARGET ${target} APPEND_STRING PROPERTY COMPILE_FLAGS "/MT " )
+		set_property( TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "/OPT:REF " )
+	endforeach()
+	set_property( TARGET ReDefine APPEND_STRING PROPERTY LINK_FLAGS "/DEBUG /PDBSTRIPPED:$(ConfigurationName)/${pdb_public} /PDBALTPATH:${pdb} " )
 else() # assumes UNIX
 	set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
@@ -72,110 +87,34 @@ else() # assumes UNIX
 	check_cxx_compiler_flag( -Wextra    COMPILER_FLAG_WEXTRA )
 	check_cxx_compiler_flag( -Wpedantic COMPILER_FLAG_WPEDANTIC )
 
-	if( COMPILER_FLAG_WALL )
-		target_compile_options( ReDefine PRIVATE -Wall )
-	endif()
-	if( COMPILER_FLAG_WERROR )
-		target_compile_options( ReDefine PRIVATE -Werror )
-	endif()
-	if( COMPILER_FLAG_WEXTRA )
-		target_compile_options( ReDefine PRIVATE -Wextra )
-	endif()
-	if( COMPILER_FLAG_WPEDANTIC )
-		target_compile_options( ReDefine PRIVATE -Wpedantic )
-	endif()
+	foreach( target IN ITEMS ReDefine ReDefineLib )
+		if( COMPILER_FLAG_WALL )
+			target_compile_options( ${target} PRIVATE -Wall )
+		endif()
+		if( COMPILER_FLAG_WERROR )
+			target_compile_options( ${target} PRIVATE -Werror )
+		endif()
+		if( COMPILER_FLAG_WEXTRA )
+			target_compile_options( ${target} PRIVATE -Wextra )
+		endif()
+		if( COMPILER_FLAG_WPEDANTIC )
+			target_compile_options( ${target} PRIVATE -Wpedantic )
+		endif()
+	endforeach()
 
-	check_cxx_compiler_flag( -static-libgcc COMPILER_FLAG_STATIC_LIBGCC )
+	check_cxx_compiler_flag( -static-libgcc    COMPILER_FLAG_STATIC_LIBGCC )
 	check_cxx_compiler_flag( -static-libstdc++ COMPILER_FLAG_STATIC_LIBSTDCPP )
 
 	if( COMPILER_FLAG_STATIC_LIBGCC )
-		target_link_libraries( ReDefine -static-libgcc )
+		target_link_libraries( ReDefine PRIVATE -static-libgcc )
 	endif()
 	if( COMPILER_FLAG_STATIC_LIBSTDCPP )
-		target_link_libraries( ReDefine -static-libstdc++ )
+		target_link_libraries( ReDefine PRIVATE -static-libstdc++ )
 	endif()
 endif()
 
-function( StdFilesystem target )
-	if( NOT CMAKE_CXX_STANDARD )
-		message( FATAL_ERROR "CMAKE_CXX_STANDARD not set" )
-	endif()
 
-	message( STATUS "Find std::filesystem..." )
-	include( CheckIncludeFileCXX )
-	include( CheckCXXSourceCompiles )
-
-	unset( _std_filesystem_include_ CACHE )
-	unset( _std_filesystem_namespace_ CACHE )
-
-	set( CMAKE_REQUIRED_QUIET true )
-	set( CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${CMAKE_CXX${CMAKE_CXX_STANDARD}_STANDARD_COMPILE_OPTION}" )
-
-	foreach( include IN ITEMS filesystem experimental/filesystem )
-		# CMAKE_REQUIRED_LIBRARIES
-		# see https://cmake.org/cmake/help/latest/policy/CMP0075.html
-		unset( CMAKE_REQUIRED_LIBRARIES )
-
-		check_include_file_cxx( ${include} _std_filesystem_include_ )
-		if( NOT _std_filesystem_include_ )
-			unset( _std_filesystem_include_ CACHE )
-			continue()
-		endif()
-
-		# _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-		# see https://github.com/microsoft/STL/blob/b72c0a609f00b92aedbb18d09faf72d48ceb9b4f/stl/inc/experimental/filesystem#L27-L31
-		foreach( define IN ITEMS "" _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING )
-			if( "${define}" STREQUAL "" )
-				unset( CMAKE_REQUIRED_DEFINITIONS )
-			else()
-				set( CMAKE_REQUIRED_DEFINITIONS -D${define} )
-			endif()
-
-			foreach( namespace IN ITEMS std::filesystem std::experimental::filesystem std::experimental::filesysystem::v1 std::tr2::sys std::__fs::filesystem )
-				foreach( library IN ITEMS "" stdc++fs c++fs c++experimental )
-					set( CMAKE_REQUIRED_LIBRARIES ${library} )
-
-					check_cxx_source_compiles( "#include <${include}>
-					int main(){ ${namespace}::exists(\"file\"); }"
-					_std_filesystem_namespace_ )
-
-					if( _std_filesystem_namespace_ )
-						message( STATUS "Find std::filesystem... found" )
-						message( STATUS "     include:   ${include}" )
-						message( STATUS "     namespace: ${namespace}" )
-
-						if( "${include}" STREQUAL "filesystem" )
-							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM )
-							target_compile_definitions( ${target} PRIVATE HAVE_FILESYSTEM_NAMESPACE=${namespace} )
-						else()
-							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM )
-							target_compile_definitions( ${target} PRIVATE HAVE_EXPERIMENTAL_FILESYSTEM_NAMESPACE=${namespace} )
-						endif()
-
-						if( NOT "${define}" STREQUAL "" )
-							message( STATUS "     define:    ${define}" )
-							target_compile_definitions( ${target} PRIVATE ${define} )
-						endif()
-
-						if( NOT "${library}" STREQUAL "" )
-							message( STATUS "     library:   ${library}" )
-							target_link_libraries( ${target} ${library} )
-						endif()
-
-						return()
-					else()
-						unset( _std_filesystem_namespace_ CACHE )
-					endif()
-				endforeach()
-			endforeach()
-		endforeach()
-		unset( _std_filesystem_include_ CACHE )
-	endforeach()
-
-	message( STATUS "Find std::filesystem... not found" )
-endfunction()
-
-StdFilesystem( ReDefine )
+StdFilesystem( ReDefineLib )
 
 add_subdirectory( Test )
 

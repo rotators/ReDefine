@@ -1,5 +1,4 @@
-#ifndef __REDEFINE__
-#define __REDEFINE__    // :)
+#pragma once
 
 #include <functional>
 #include <map>
@@ -384,5 +383,3 @@ public:
 
     bool ReadConfigVariables( const std::string& section );
 };
-
-#endif // __REDEFINE__ //

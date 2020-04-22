@@ -1,4 +1,4 @@
-#include "FOClassic/Ini.h"
+#include "Ini.h"
 
 #include "ReDefine.h"
 #include "StdFilesystem.h"
