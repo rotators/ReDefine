@@ -88,9 +88,9 @@ std::string ReDefine::ScriptCode::GetFullString() const
                         result += Parent->TextGetJoined( args, "," );
                         break;
                     default:
-                        Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, SCRIPT_FORMAT_WIDE );
-                        Parent->ScriptFormatting = SCRIPT_FORMAT_WIDE;
-                        result += " " + Parent->TextGetJoined( args, ", " ) + " ";
+                        Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, SCRIPT_FORMAT_MEDIUM );
+                        Parent->ScriptFormatting = SCRIPT_FORMAT_MEDIUM;
+                        result += Parent->TextGetJoined( args, ", " );
                 }
             }
 

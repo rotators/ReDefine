@@ -55,7 +55,7 @@ ReDefine::ReDefine() :
     UseParser( false ),
     ScriptFormattingForced( false ),
     ScriptFormattingUnix( false ),
-    ScriptFormatting( SCRIPT_FORMAT_WIDE )
+    ScriptFormatting( SCRIPT_FORMAT_MEDIUM )
 {}
 
 ReDefine::~ReDefine()
