@@ -12,7 +12,7 @@ static std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
 static std::regex IsInt( "^[\\-]?[0-9]+$" );
 static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
-static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
+static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|bw[a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
 
 static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
 static std::regex GetFunctionsQuotedText( "\".*?\"" );
@@ -156,8 +156,17 @@ std::string ReDefine::TextGetTrimmed( const std::string& text )
 {
     std::string result = text;
 
-    result.erase( result.begin(), find_if( result.begin(), result.end(), std::not1( std::ptr_fun<int, int>( isspace ) ) ) );
-    result.erase( find_if( result.rbegin(), result.rend(), std::not1( std::ptr_fun<int, int>( isspace ) ) ).base(), result.end() );
+    // C++14
+    // result.erase( result.begin(), find_if( result.begin(), result.end(), std::not1( std::ptr_fun<int, int>( isspace ) ) ) );
+    // result.erase( find_if( result.rbegin(), result.rend(), std::not1( std::ptr_fun<int, int>( isspace ) ) ).base(), result.end() );
+
+    // C++17+
+    result.erase( result.begin(), std::find_if( result.begin(), result.end(), [] ( unsigned char c ) {
+        return !isspace( c );
+    } ) );
+    result.erase( std::find_if( result.rbegin(), result.rend(), [] ( unsigned char c ) {
+        return !std::isspace( c );
+    } ).base(), result.end() );
 
     return result;
 }
@@ -223,7 +232,7 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
 
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariables ), end = std::sregex_iterator(); it != end; ++it )
     {
-        ScriptCode variable( SCRIPT_CODE_VARIABLE );
+        ScriptCode variable( ScriptCode::Flag::VARIABLE );
 
         variable.Full = it->str();
         variable.Name = it->str( 1 );
@@ -231,10 +240,15 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         variable.OperatorArgument = it->str( 3 );
 
         if( !IsOperator( variable.Operator ) )
+        {
+            // DEBUG(__FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
             continue;
+        }
 
         result.push_back( variable );
         count++;
+
+        // DEBUG(__FUNCTION__, "VAR<%s>", variable.Name.c_str());
     }
 
     return count;
@@ -364,7 +378,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
                     // script edits checking OperatorArgument should be fine too, as they're not allowed to use spaces :>
                     if( --balance <= 0 )
                     {
-                        full = text.substr( funcStart, funcLen + (balance + 1) );
+                        full = text.substr( funcStart, funcLen + ( (int64_t)balance + 1 ) );
                         if( balance == 0 )
                             opArg += ch;
                         break;
@@ -467,7 +481,7 @@ unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<Re
         }
 
         // update result
-        ScriptCode function( SCRIPT_CODE_FUNCTION );
+        ScriptCode function( ScriptCode::Flag::FUNCTION );
 
         function.Full = full;
         function.Name = func;

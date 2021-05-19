@@ -56,12 +56,20 @@ static vector<char> CommentChars;
 
 inline void TrimLeft( string& str )
 {
+    /*c++14
     str.erase( str.begin(), find_if( str.begin(), str.end(), not1( ptr_fun<int, int>( isspace ) ) ) );
+    //c++17+
+    */
+    str.erase(str.begin(), find_if(str.begin(), str.end(), [](unsigned char c) {return !isspace(c); }));
 }
 
 inline void TrimRight( string& str )
 {
+    /*c++14
     str.erase( find_if( str.rbegin(), str.rend(), not1( ptr_fun<int, int>( isspace ) ) ).base(), str.end() );
+    //c++17+
+    */
+    str.erase(find_if(str.rbegin(), str.rend(), [](unsigned char c) { return !isspace(c); }).base(), str.end() );
 }
 
 inline void Cleanup( string& str )

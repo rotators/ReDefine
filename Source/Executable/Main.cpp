@@ -156,7 +156,7 @@ int main( int argc, char** argv )
 
         int debugChanges = redefine->Config->GetInt( section, "DebugChanges", false );
         if( cmd->IsOption( "debug-changes" ) )
-            debugChanges = cmd->GetInt( "debug-changes", redefine->DebugChanges );
+            debugChanges = cmd->GetInt( "debug-changes", static_cast<int>(redefine->DebugChanges) );
 
 
         #if defined (HAVE_PARSER)
@@ -168,8 +168,8 @@ int main( int argc, char** argv )
         redefine->ScriptFormattingUnix = redefine->Config->GetBool( section, "UnixNewlines", redefine->ScriptFormattingUnix );
 
         int formatting = redefine->Config->GetInt( section, "FormatFunctions", -1 );
-        if( formatting >= ReDefine::SCRIPT_FORMAT_MIN && formatting <= ReDefine::SCRIPT_FORMAT_MAX )
-            redefine->ScriptFormatting = static_cast<ReDefine::ScriptCodeFormat>(formatting);
+        if( formatting >= static_cast<int>(ReDefine::ScriptCode::Format::MIN) && formatting <= static_cast<int>(ReDefine::ScriptCode::Format::MAX) )
+            redefine->ScriptFormatting = static_cast<ReDefine::ScriptCode::Format>(formatting);
         redefine->ScriptFormattingForced = redefine->Config->GetBool( section, "FormatFunctionsForced", redefine->ScriptFormattingForced );
 
         //
@@ -204,7 +204,7 @@ int main( int argc, char** argv )
             // additional tuning
             //
 
-            if( debugChanges >= ReDefine::SCRIPT_DEBUG_CHANGES_MIN && debugChanges <= ReDefine::SCRIPT_DEBUG_CHANGES_MAX )
+            if( debugChanges >= static_cast<int>(ReDefine::ScriptDebugChanges::MIN) && debugChanges <= static_cast<int>(ReDefine::ScriptDebugChanges::MAX) )
                 redefine->DebugChanges = static_cast<ReDefine::ScriptDebugChanges>(debugChanges);
 
             #if defined (HAVE_PARSER)

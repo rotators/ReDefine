@@ -51,11 +51,11 @@ ReDefine::ReDefine() :
     LogFile( "ReDefine.log" ),
     LogWarning( "ReDefine.WARNING.log" ),
     LogDebug( "ReDefine.DEBUG.log" ),
-    DebugChanges( SCRIPT_DEBUG_CHANGES_NONE ),
+    DebugChanges( ScriptDebugChanges::NONE ),
     UseParser( false ),
     ScriptFormattingForced( false ),
     ScriptFormattingUnix( false ),
-    ScriptFormatting( SCRIPT_FORMAT_MEDIUM )
+    ScriptFormatting( ScriptCode::Format::MEDIUM )
 {}
 
 ReDefine::~ReDefine()
@@ -401,7 +401,6 @@ void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* =
     LOG( "Process scripts%s ...", readOnly ? " (read only)" : "" );
 
     std::vector<std::string> scripts;
-
 
     for( const auto& file : std_filesystem::recursive_directory_iterator( path ) )
     {

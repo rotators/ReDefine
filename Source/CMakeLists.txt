@@ -1,14 +1,9 @@
 cmake_minimum_required( VERSION 3.7.2 FATAL_ERROR ) # cannot go higher due to nuremberg setup
 
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
-set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
-
-if( "${CMAKE_GENERATOR}" STREQUAL "MinGW Makefiles" )
-	set( CMAKE_CXX_STANDARD           17 )
-else()
-	set( CMAKE_CXX_STANDARD           14 )
-endif()
+set( CMAKE_CXX_STANDARD           20 )
+set( CMAKE_CXX_STANDARD_REQUIRED  YES )
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake" )
 
@@ -62,7 +57,8 @@ if( EXISTS "${CMAKE_CURRENT_LIST_DIR}/Parser.cpp" AND EXISTS "${CMAKE_CURRENT_LI
 		PRIVATE
 			Parser.cpp
 	)
-	target_compile_definitions( ReDefine PRIVATE HAVE_PARSER )
+	target_compile_definitions( ReDefine    PRIVATE HAVE_PARSER )
+	target_compile_definitions( ReDefineLib PRIVATE HAVE_PARSER )
 endif()
 
 target_link_libraries( ReDefine PRIVATE ReDefineLib )

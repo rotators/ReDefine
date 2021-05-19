@@ -13,6 +13,10 @@ void ReDefine::InitOperators()
     Operators["PlusEquals"] = "+=";
     Operators["Minus"] = "-";
     Operators["MinusEquals"] = "-=";
+    Operators["BitwiseAnd"] = "bwand";
+    Operators["BitwiseNot"] = "bwnot";
+    Operators["BitwiseOr"] = "bwor";
+    Operators["BitwiseXor"] = "bwxor";
 }
 
 void ReDefine::FinishOperators()

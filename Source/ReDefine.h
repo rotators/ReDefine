@@ -14,6 +14,7 @@ class ReDefine
 public:
 
     struct ScriptCode;
+    struct ScriptEditAction;
 
     //
     // misc maps
@@ -27,8 +28,15 @@ public:
     // script edit actions
     //
 
-    typedef std::function<bool (const ScriptCode&, const std::vector<std::string>&)> ScriptEditIf;
-    typedef std::function<bool (ScriptCode&, const std::vector<std::string>&)>       ScriptEditDo;
+    enum class ScriptEditReturn : signed char
+    {
+        Invalid = -1,
+        Failure,
+        Success
+    };
+
+    typedef std::function<ScriptEditReturn( ScriptEditAction&, const ScriptCode& )> ScriptEditIf;
+    typedef std::function<ScriptEditReturn( ScriptEditAction&, ScriptCode& )>       ScriptEditDo;
 
     //
     // ReDefine
@@ -191,42 +199,94 @@ public:
     // Script
     //
 
+    struct ScriptEdit
+    {
+        struct Action
+        {
+            std::string              Name;
+            std::vector<std::string> Values;
+            bool                     Negate; // used by conditions only
+        };
+
+        bool                Debug;
+        std::string         Name;
+
+        std::vector<Action> Conditions;
+        std::vector<Action> Results;
+
+        ScriptEdit();
+    };
+
+    // Read-only version of ScriptEdit::Action,
+    // passed to conditions/results functions
+    struct ScriptEditAction
+    {
+        const std::string&              Name;
+        const std::vector<std::string>& Values;
+
+        ScriptEditAction( const ScriptEdit::Action& action );
+
+        //
+
+        inline ScriptEditReturn Return( bool result )
+        {
+            return result ? ScriptEditReturn::Success : ScriptEditReturn::Failure;
+        }
+
+        inline ScriptEditReturn Invalid()
+        {
+            return ScriptEditReturn::Invalid;
+        }
+
+        inline ScriptEditReturn Failure()
+        {
+            return ScriptEditReturn::Failure;
+        }
+
+        inline ScriptEditReturn Success()
+        {
+            return ScriptEditReturn::Success;
+        }
+    };
+
     struct ScriptFile
     {
         std::vector<std::string> Defines;
     };
 
-    // internal flags set for all ScriptCode
-    enum ScriptCodeFlag : unsigned int
-    {
-        // types
-
-        SCRIPT_CODE_RESERVED = 0x001,
-        SCRIPT_CODE_VARIABLE = 0x002, // set when code looks like a variable
-        SCRIPT_CODE_FUNCTION = 0x004, // set when code looks like a function
-
-        //
-
-        SCRIPT_CODE_BEFORE   = 0x010, // set when processing RunBefore edits
-        SCRIPT_CODE_AFTER    = 0x020, // set when processing RunAfter edits
-        SCRIPT_CODE_EDITED   = 0x040, // set if any result function has been executed
-        SCRIPT_CODE_REFRESH  = 0x080, // set when code needs standard processing between edits
-        SCRIPT_CODE_RESTART  = 0x100  // set by DoRestart; forces restart of line processing keeping changes already made to code
-    };
-
-    enum ScriptCodeFormat : unsigned char
-    {
-        SCRIPT_FORMAT_UNCHANGED = 0, // func(preserve, original,formatting )
-        SCRIPT_FORMAT_WIDE,          // func( spaces, added, everywhere )
-        SCRIPT_FORMAT_MEDIUM,        // func(spaces, between, arguments)
-        SCRIPT_FORMAT_TIGHT,         // func(no,spaces,allowed)
-
-        SCRIPT_FORMAT_MIN = SCRIPT_FORMAT_UNCHANGED,
-        SCRIPT_FORMAT_MAX = SCRIPT_FORMAT_TIGHT
-    };
-
     struct ScriptCode
     {
+        enum class Format : unsigned char
+        {
+            UNCHANGED = 0, // func(preserve, original,formatting )
+            WIDE,          // func( spaces, added, everywhere )
+            MEDIUM,        // func(spaces, between, arguments)
+            TIGHT,         // func(no,spaces,allowed)
+
+            MIN = UNCHANGED,
+            MAX = TIGHT
+        };
+
+        // internal flags set for all ScriptCode
+        enum class Flag : unsigned short
+        {
+            NONE     = 0,
+
+            // types
+
+            RESERVED = 0x001,
+            VARIABLE = 0x002,  // set when code looks like a variable
+            FUNCTION = 0x004,  // set when code looks like a function
+
+            //
+
+            BEFORE   = 0x010,  // set when processing RunBefore edits
+            AFTER    = 0x020,  // set when processing RunAfter edits
+            EDITED   = 0x040,  // set if any result function has been executed
+            REFRESH  = 0x080,  // set when code needs standard processing between edits
+            RESTART  = 0x100   // set by DoRestart; forces restart of line processing keeping changes already made to code
+        };
+
         struct Argument
         {
             std::string Raw; // original
@@ -241,7 +301,7 @@ public:
 
         // dynamic
 
-        unsigned int          Flags;            // see ScriptCodeFlag
+        Flag                  Flags;
         std::string           Full;
         std::string           Name;             // used by variables/functions
         std::string           ReturnType;       // used by variables/functions
@@ -256,12 +316,12 @@ public:
 
         //
 
-        ScriptCode( const unsigned int& flags = 0 );
+        ScriptCode( const ScriptCode::Flag& flags = ScriptCode::Flag::NONE );
 
-        bool IsFlag( unsigned int flag ) const;
-        void SetFlag( unsigned int flag );
-        void UnsetFlag( unsigned int flag );
-        void SetType( const ScriptCodeFlag& type );
+        bool IsFlag( ScriptCode::Flag flag ) const;
+        void SetFlag( ScriptCode::Flag flag );
+        void UnsetFlag( ScriptCode::Flag flag );
+        void SetType( const ScriptCode::Flag& type );
 
         // returns string representation of ScriptCode
         std::string GetFullString() const;
@@ -286,40 +346,25 @@ public:
         bool GetUINT( const char* caller, const std::string& value, unsigned int& val, const std::string& name = "UINT" ) const;
 
         // checks if condition action exists before calling it
-        bool CallEditIf( const std::string& name, std::vector<std::string> values = std::vector<std::string>() ) const;
+        ScriptEditReturn CallEditIf( ScriptEditAction& action ) const;
+        ScriptEditReturn CallEditIf( const std::string& name, std::vector<std::string> values = std::vector<std::string>() ) const;
 
         // checks if result action exists before calling it
-        bool CallEditDo( const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
+        ScriptEditReturn CallEditDo( ScriptEditAction& action );
+        ScriptEditReturn CallEditDo( const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
 
         void Change( const std::string& left, const std::string& right = std::string() );
         void ChangeLog();
     };
 
-    struct ScriptEdit
+    enum class ScriptDebugChanges : unsigned char
     {
-        struct Action
-        {
-            std::string              Name;
-            std::vector<std::string> Values;
-        };
+        NONE = 0,
+        ONLY_IF_CHANGED,
+        ALL,
 
-        bool                Debug;
-        std::string         Name;
-
-        std::vector<Action> Conditions;
-        std::vector<Action> Results;
-
-        ScriptEdit();
-    };
-
-    enum ScriptDebugChanges : unsigned char
-    {
-        SCRIPT_DEBUG_CHANGES_NONE = 0,
-        SCRIPT_DEBUG_CHANGES_ONLY,
-        SCRIPT_DEBUG_CHANGES_ALL,
-
-        SCRIPT_DEBUG_CHANGES_MIN  = SCRIPT_DEBUG_CHANGES_NONE,
-        SCRIPT_DEBUG_CHANGES_MAX  = SCRIPT_DEBUG_CHANGES_ALL
+        MIN  = NONE,
+        MAX  = ALL
     };
 
     std::map<std::string, ScriptEditIf>             EditIf;
@@ -331,7 +376,7 @@ public:
     bool                                            UseParser;
     bool                                            ScriptFormattingForced;
     bool                                            ScriptFormattingUnix;
-    ScriptCodeFormat                                ScriptFormatting;
+    ScriptCode::Format                              ScriptFormatting;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );
