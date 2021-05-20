@@ -91,6 +91,12 @@ jobs:
 
   - name: scan-build
     run:  scan-build-8 cmake -DBUILD_DIR=Build.ScanBuild -P Build.cmake || true
+    env:
+     CI:              true
+     CC:              clang
+     CXX:             clang++
+     MATRIX_OS:       ubuntu-latest
+     MATRIX_PLATFORM: x64
 
 # - name: clang-tidy
 #   run:  cmake -DBUILD_DIR=Build.ClangTidy -P Build.cmake
