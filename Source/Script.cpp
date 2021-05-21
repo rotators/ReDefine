@@ -1,10 +1,10 @@
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 
 #include "Ini.h"
 
 #include "ReDefine.h"
-#include "StdFilesystem.h"
 
 #if defined (HAVE_PARSER)
 # include "Parser.h"
@@ -19,10 +19,211 @@ ReDefine::ScriptEdit::ScriptEdit() :
 
 //
 
-ReDefine::ScriptEditAction::ScriptEditAction( const ScriptEdit::Action& action ) :
+ReDefine::ScriptEditAction::ScriptEditAction( void* root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags ) :
     Name( action.Name ),
-    Values( action.Values )
+    Values( action.Values ),
+    Root( static_cast<ReDefine*>(root) ),
+    Flags( flags )
 {}
+
+typedef std::underlying_type<ReDefine::ScriptEditAction::Flag>::type ScriptEditActionFlagType;
+
+bool ReDefine::ScriptEditAction::IsFlag( ScriptEditAction::Flag flag ) const
+{
+    return (static_cast<ScriptEditActionFlagType>(Flags) & static_cast<ScriptEditActionFlagType>(flag) ) != 0;
+}
+
+void ReDefine::ScriptEditAction::SetFlag( ScriptEditAction::Flag flag )
+{
+    Flags = static_cast<ScriptEditAction::Flag>(static_cast<ScriptEditActionFlagType>(Flags) | static_cast<ScriptEditActionFlagType>(flag) );
+}
+
+void ReDefine::ScriptEditAction::UnsetFlag( ScriptEditAction::Flag flag )
+{
+    Flags = static_cast<ScriptEditAction::Flag>( (static_cast<ScriptEditActionFlagType>(Flags) | static_cast<ScriptEditActionFlagType>(flag) ) ^ static_cast<ScriptEditActionFlagType>(flag) );
+}
+
+bool ReDefine::ScriptEditAction::IsBefore( const char* caller ) const
+{
+    if( !IsFlag( ScriptEditAction::Flag::BEFORE ) )
+    {
+        if( caller )
+            Root->WARNING( caller, "action can be used only in RunBefore edits" );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::IsAfter( const char* caller ) const
+{
+    if( !IsFlag( ScriptEditAction::Flag::AFTER ) )
+    {
+        if( caller )
+            Root->WARNING( caller, "action can be used only in RunAfter edits" );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::IsValues( const char* caller, const unsigned int& count ) const
+{
+    if( Values.size() < count )
+    {
+        if( caller )
+            Root->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", count, Values.size() );
+
+        return false;
+    }
+
+    for( unsigned int c = 0; c < count; c++ )
+    {
+        if( Values[c].empty() )
+        {
+            if( caller )
+                Root->WARNING( caller, "wrong number of arguments : argument<%u> is empty", c + 1 );
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::GetINDEX( const char* caller, const unsigned int& val, const ScriptCode& code, unsigned int& out ) const
+{
+    unsigned int tmp;
+    if( !GetUINT( caller, val, tmp, "INDEX" ) )
+        return false;
+
+    if( tmp >= code.Arguments.size() )
+    {
+        if( caller )
+            Root->WARNING( caller, "INDEX<%u> out of range", tmp );
+
+        return false;
+    }
+
+    out = tmp;
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::GetTYPE( const char* caller, const unsigned int& val, bool allowUnknown /* = false */ ) const
+{
+    if( val >= Values.size() )
+    {
+        if( caller )
+            Root->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", val, Values.size() ); // TODO bit misleading
+
+        return false;
+    }
+
+    if( Values[val].empty() )
+    {
+        if( caller )
+            Root->WARNING( caller, "TYPE is empty" );
+
+        return false;
+    }
+
+    if( allowUnknown && Root->IsMysteryDefineType( Values[val] ) )
+        return true;
+
+    if( !Root->IsDefineType( Values[val] ) )
+    {
+        if( caller )
+            Root->WARNING( caller, "unknown TYPE<%s>", Values[val].c_str() );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::GetUINT( const char* caller, const unsigned int& val, unsigned int& out, const std::string& name /* = "UINT" */ ) const
+{
+    if( val >= Values.size() )
+    {
+        if( caller )
+            Root->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", val, Values.size() ); // TODO bit misleading
+
+        return false;
+    }
+
+    int tmp = -1;
+    if( !Root->TextIsInt( Values[val] ) || !Root->TextGetInt( Values[val], tmp ) )
+    {
+        if( caller )
+            Root->WARNING( caller, "invalid %s<%s>", name.c_str(), Values[val].c_str() );
+
+        return false;
+    }
+
+    if( tmp < 0 )
+    {
+        if( caller )
+            Root->WARNING( caller, "invalid %s<%s> : value < 0", name.c_str(), Values[val].c_str() );
+
+        return false;
+    }
+
+    out = tmp;
+    return true;
+}
+
+// checks if given edit action exists before trying to call it
+// as EditIf/EditDo should be free to modify by main application at any point,
+// it can use EditIf["IfThing"](...) like there's no tomorrow, but ReDefine class doing same thing is Bad Idea (TM)
+
+ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditIf( const ScriptCode& code )
+{
+    auto it = Root->EditIf.find( Name );
+    if( it == Root->EditIf.end() )
+    {
+        Root->WARNING( __FUNCTION__, "script action condition<%s> not found", Name.c_str() );
+        return ScriptEditReturn::Invalid;
+    }
+
+    return it->second( *this, code );
+}
+
+ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditIf( const ScriptCode& code, const std::string& name, std::vector<std::string> values /* = std::vector<std::string>() */ )
+{
+    ScriptEdit::Action action;
+    action.Name = name;
+    action.Values = values;
+
+    ScriptEditAction data( Root, action, Flags );
+
+    return data.CallEditIf( code );
+}
+
+ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditDo( ScriptCode& code )
+{
+    auto it = Root->EditDo.find( Name );
+    if( it == Root->EditDo.end() )
+    {
+        Root->WARNING( __FUNCTION__, "script action result<%s> not found", Name.c_str() );
+        return ScriptEditReturn::Invalid;
+    }
+
+    return it->second( *this, code );
+}
+
+ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditDo( ScriptCode& code, const std::string& name, std::vector<std::string> values /* = std::vector<std::string>() */ )
+{
+    ScriptEdit::Action action;
+    action.Name = name;
+    action.Values = values;
+
+    ScriptEditAction data( Root, action, Flags );
+
+    Root->DEBUG( nullptr, "CallEditDo(%s%s%s)", data.Name.c_str(), data.Values.size() ? ", " : "", Root->TextGetJoined( data.Values, ", " ).c_str() );
+    return data.CallEditDo( code );
+}
 
 //
 
@@ -107,8 +308,8 @@ std::string ReDefine::ScriptCode::GetFullString() const
                         result += Parent->TextGetJoined( args, "," );
                         break;
                     default:
-                        Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, ScriptCode::Format::MEDIUM );
-                        Parent->ScriptFormatting = ScriptCode::Format::MEDIUM;
+                        Parent->WARNING( __FUNCTION__, "unknown formatting<%u> : switching to default<%u>", Parent->ScriptFormatting, ScriptCode::Format::DEFAULT );
+                        Parent->ScriptFormatting = ScriptCode::Format::DEFAULT;
                         result += Parent->TextGetJoined( args, ", " );
                 }
             }
@@ -153,32 +354,6 @@ void ReDefine::ScriptCode::SetFunctionArgumentsTypes( const ReDefine::FunctionPr
 }
 
 //
-
-bool ReDefine::ScriptCode::IsBefore( const char* caller ) const
-{
-    if( !IsFlag( ScriptCode::Flag::BEFORE ) )
-    {
-        if( caller )
-            Parent->WARNING( caller, "action can be used only in RunBefore edits" );
-
-        return false;
-    }
-
-    return true;
-}
-
-bool ReDefine::ScriptCode::IsAfter( const char* caller ) const
-{
-    if( !IsFlag( ScriptCode::Flag::AFTER ) )
-    {
-        if( caller )
-            Parent->WARNING( caller, "action can be used only in RunAfter edits" );
-
-        return false;
-    }
-
-    return true;
-}
 
 bool ReDefine::ScriptCode::IsVariable( const char* caller ) const
 {
@@ -259,160 +434,8 @@ bool ReDefine::ScriptCode::IsVariableOrFunction( const char* caller ) const
     return true;
 }
 
-bool ReDefine::ScriptCode::IsValues( const char* caller, const std::vector<std::string>& values, const unsigned int& count ) const
-{
-    if( values.size() < count )
-    {
-        if( caller )
-            Parent->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", count, values.size() );
-
-        return false;
-    }
-
-    for( unsigned int c = 0; c < count; c++ )
-    {
-        if( values[c].empty() )
-        {
-            if( caller )
-                Parent->WARNING( caller, "wrong number of arguments : argument<%u> is empty", c + 1 );
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
 //
 
-bool ReDefine::ScriptCode::GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const
-{
-    unsigned int tmp;
-    if( !GetUINT( caller, value, tmp, "INDEX" ) )
-        return false;
-
-    if( tmp >= Arguments.size() )
-    {
-        if( caller )
-            Parent->WARNING( caller, "INDEX<%u> out of range", tmp );
-
-        return false;
-    }
-
-    val = tmp;
-    return true;
-}
-
-bool ReDefine::ScriptCode::GetTYPE( const char* caller, const std::string& value, bool allowUnknown /* = false */ ) const
-{
-    if( value.empty() )
-    {
-        if( caller )
-            Parent->WARNING( caller, "TYPE is empty" );
-
-        return false;
-    }
-
-    if( allowUnknown && Parent->IsMysteryDefineType( value ) )
-        return true;
-
-    if( !Parent->IsDefineType( value ) )
-    {
-        if( caller )
-            Parent->WARNING( caller, "unknown TYPE<%s>", value.c_str() );
-
-        return false;
-    }
-
-    return true;
-}
-
-bool ReDefine::ScriptCode::GetUINT( const char* caller, const std::string& value, unsigned int& val, const std::string& name /* = "UINT" */ ) const
-{
-    int tmp = -1;
-    if( !Parent->TextIsInt( value ) || !Parent->TextGetInt( value, tmp ) )
-    {
-        if( caller )
-            Parent->WARNING( caller, "invalid %s<%s>", name.c_str(), value.c_str() );
-
-        return false;
-    }
-
-    if( tmp < 0 )
-    {
-        if( caller )
-            Parent->WARNING( caller, "invalid %s<%s> : value < 0", name.c_str(), value.c_str() );
-
-        return false;
-    }
-
-    val = tmp;
-    return true;
-}
-
-// checks if given edit action exists before trying to call it
-// as EditIf/EditDo should be free to modify by main application at any point,
-// it can use EditIf["IfThing"](...) like there's no tomorrow, but ReDefine class doing same thing is Bad Idea (TM)
-
-ReDefine::ScriptEditReturn ReDefine::ScriptCode::CallEditIf( ScriptEditAction& action ) const
-{
-    auto it = Parent->EditIf.find( action.Name );
-    if( it == Parent->EditIf.end() )
-    {
-        Parent->WARNING( __FUNCTION__, "script action condition<%s> not found", action.Name.c_str() );
-        return ScriptEditReturn::Invalid;
-    }
-
-    return it->second( action, *this );
-}
-
-ReDefine::ScriptEditReturn ReDefine::ScriptCode::CallEditIf( const std::string& name, std::vector<std::string> values /* = std::vector<std::string>() */ ) const
-{
-    auto it = Parent->EditIf.find( name );
-    if( it == Parent->EditIf.end() )
-    {
-        Parent->WARNING( __FUNCTION__, "script action condition<%s> not found", name.c_str() );
-        return ScriptEditReturn::Invalid;
-    }
-
-    ScriptEdit::Action action;
-    action.Name = name;
-    action.Values = values;
-
-    ScriptEditAction data( action );
-
-    return it->second( data, *this );
-}
-
-ReDefine::ScriptEditReturn ReDefine::ScriptCode::CallEditDo( ScriptEditAction& action )
-{
-    auto it = Parent->EditDo.find( action.Name );
-    if( it == Parent->EditDo.end() )
-    {
-        Parent->WARNING( __FUNCTION__, "script action result<%s> not found", action.Name.c_str() );
-        return ScriptEditReturn::Invalid;
-    }
-
-    return it->second( action, *this );
-}
-
-ReDefine::ScriptEditReturn ReDefine::ScriptCode::CallEditDo( const std::string& name, std::vector<std::string> values /* = std::vector<std::string>() */ )
-{
-    auto it = Parent->EditDo.find( name );
-    if( it == Parent->EditDo.end() )
-    {
-        Parent->WARNING( __FUNCTION__, "script action result<%s> not found", name.c_str() );
-        return ScriptEditReturn::Invalid;
-    }
-
-    ScriptEdit::Action action;
-    action.Name = name;
-    action.Values = values;
-
-    ScriptEditAction data( action );
-
-    return it->second( data, *this );
-}
 
 void ReDefine::ScriptCode::Change( const std::string& left, const std::string& right /* = std::string() */ )
 {
@@ -455,34 +478,34 @@ static ReDefine::ScriptEditReturn IfArgumentIs( ReDefine::ScriptEditAction& acti
     if( !code.IsFunctionKnown( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    if( code.Parent->TextIsInt( code.Arguments[idx].Arg ) )
+    if( action.Root->TextIsInt( code.Arguments[idx].Arg ) )
     {
         int         val = -1;
         std::string type = code.Arguments[idx].Type, value;
 
-        if( code.IsValues( nullptr, action.Values, 3 ) )
+        if( action.IsValues( nullptr, 3 ) )
         {
-            if( code.GetTYPE( __FUNCTION__, action.Values[2] ) )
+            if( action.GetTYPE( __FUNCTION__, 2 ) )
                 type = action.Values[2];
             else
                 return action.Invalid();
         }
 
-        if( !code.Parent->TextGetInt( code.Arguments[idx].Arg, val ) || !code.Parent->GetDefineName( type, val, value ) )
+        if( !action.Root->TextGetInt( code.Arguments[idx].Arg, val ) || !action.Root->GetDefineName( type, val, value ) )
             return action.Failure();
 
-        // code.Parent->DEBUG( __FUNCTION__, "parsed compare: %s == %s", value.c_str(), values[1].c_str() );
+        // action.Root->DEBUG( __FUNCTION__, "parsed compare: %s == %s", value.c_str(), values[1].c_str() );
         return action.Return( value == action.Values[1] );
     }
 
-    // code.Parent->DEBUG( __FUNCTION__, "raw compare: %s == %s", code.Arguments[idx].c_str(), values[1].c_str() );
+    // action.Root->DEBUG( __FUNCTION__, "raw compare: %s == %s", code.Arguments[idx].c_str(), values[1].c_str() );
     return action.Return( code.Arguments[idx].Arg == action.Values[1] );
 }
 
@@ -493,11 +516,11 @@ static ReDefine::ScriptEditReturn IfArgumentValue( ReDefine::ScriptEditAction& a
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     return action.Return( code.Arguments[idx].Arg == action.Values[1] );
@@ -527,20 +550,20 @@ static ReDefine::ScriptEditReturn IfArgumentsEqual( ReDefine::ScriptEditAction& 
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx1;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx1 ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx1 ) )
         return action.Invalid();
 
     unsigned int idx2;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[1], idx2 ) )
+    if( !action.GetINDEX( __FUNCTION__, 1, code, idx2 ) )
         return action.Invalid();
 
     if( idx1 == idx2 )
     {
-        code.Parent->WARNING( __FUNCTION__, "duplicated INDEX<%u>", idx1 );
+        action.Root->WARNING( __FUNCTION__, "duplicated INDEX<%u>", idx1 );
         return action.Invalid();
     }
 
@@ -554,11 +577,11 @@ static ReDefine::ScriptEditReturn IfArgumentsSize( ReDefine::ScriptEditAction& a
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int size;
-    if( !code.GetUINT( __FUNCTION__, action.Values[0], size ) )
+    if( !action.GetUINT( __FUNCTION__, 0, size ) )
         return action.Invalid();
 
     return action.Return( code.Arguments.size() == size );
@@ -581,12 +604,12 @@ static ReDefine::ScriptEditReturn IfEdited( ReDefine::ScriptEditAction& action, 
 // }
 
 // ? IfFileName:STRING
-static ReDefine::ScriptEditReturn IfFileName( ReDefine::ScriptEditAction& action, const ReDefine::ScriptCode& code )
+static ReDefine::ScriptEditReturn IfFileName( ReDefine::ScriptEditAction& action, const ReDefine::ScriptCode& /* code */ )
 {
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    return action.Return( code.Parent->Status.Current.File == action.Values[0] );
+    return action.Return( action.Root->Status.Current.File == action.Values[0] );
 }
 
 // ? IfFunction
@@ -599,14 +622,14 @@ static ReDefine::ScriptEditReturn IfFunction( ReDefine::ScriptEditAction& action
     if( !code.IsFunction( nullptr ) )
         return action.Failure();
 
-    if( code.IsValues( nullptr, action.Values, 1 ) )
+    if( action.IsValues( nullptr, 1 ) )
     {
         for( const auto& value : action.Values )
         {
             if( value.empty() )
                 break;
 
-            if( code.CallEditIf( "IfName", { value } ) == ReDefine::ScriptEditReturn::Success )
+            if( action.CallEditIf( code, "IfName", { value } ) == ReDefine::ScriptEditReturn::Success )
                 return action.Success();
         }
 
@@ -623,7 +646,7 @@ static ReDefine::ScriptEditReturn IfName( ReDefine::ScriptEditAction& action, co
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     return action.Return( code.Name == action.Values[0] );
@@ -650,13 +673,13 @@ static ReDefine::ScriptEditReturn IfOperatorName( ReDefine::ScriptEditAction& ac
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     if( code.Operator.empty() )
         return action.Failure();
 
-    return action.Return( code.Parent->GetOperatorName( code.Operator ) == action.Values[0] );
+    return action.Return( action.Root->GetOperatorName( code.Operator ) == action.Values[0] );
 }
 
 // ? IfOperatorValue:STRING
@@ -665,7 +688,7 @@ static ReDefine::ScriptEditReturn IfOperatorValue( ReDefine::ScriptEditAction& a
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     if( code.OperatorArgument.empty() )
@@ -680,10 +703,10 @@ static ReDefine::ScriptEditReturn IfReturnType( ReDefine::ScriptEditAction& acti
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    if( !code.GetTYPE( __FUNCTION__, action.Values[0], true ) )
+    if( !action.GetTYPE( __FUNCTION__, 0, true ) )
         return action.Invalid();
 
     return action.Return( code.ReturnType == action.Values[0] );
@@ -699,11 +722,11 @@ static ReDefine::ScriptEditReturn IfVariable( ReDefine::ScriptEditAction& action
     if( !code.IsVariable( nullptr ) )
         return action.Failure();
 
-    if( code.IsValues( nullptr, action.Values, 1 ) )
+    if( action.IsValues( nullptr, 1 ) )
     {
         for( const auto& value : action.Values )
         {
-            if( code.CallEditIf( "IfName", { value } ) == ReDefine::ScriptEditReturn::Success )
+            if( action.CallEditIf( code, "IfName", { value } ) == ReDefine::ScriptEditReturn::Success )
                 return action.Success();
         }
 
@@ -721,14 +744,14 @@ static ReDefine::ScriptEditReturn DoArgumentCount( ReDefine::ScriptEditAction& a
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    code.Parent->Status.Process.Counters[action.Values[1]][code.Arguments[idx].Arg]++;
+    action.Root->Status.Process.Counters[action.Values[1]][code.Arguments[idx].Arg]++;
 
     return action.Success();
 }
@@ -739,14 +762,14 @@ static ReDefine::ScriptEditReturn DoArgumentSet( ReDefine::ScriptEditAction& act
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    code.Arguments[idx].Raw = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, action.Values[1] );
+    code.Arguments[idx].Raw = action.Root->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, action.Values[1] );
     code.Arguments[idx].Arg = action.Values[1];
 
     return action.Success();
@@ -759,14 +782,14 @@ static ReDefine::ScriptEditReturn DoArgumentSetPrefix( ReDefine::ScriptEditActio
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    return code.CallEditDo( "DoArgumentSet", { action.Values[0], action.Values[1] + code.Arguments[idx].Arg } );
+    return action.CallEditDo( code, "DoArgumentSet", { action.Values[0], action.Values[1] + code.Arguments[idx].Arg } );
 }
 
 // ? DoArgumentSetSuffix:INDEX,STRING
@@ -776,30 +799,30 @@ static ReDefine::ScriptEditReturn DoArgumentSetSuffix( ReDefine::ScriptEditActio
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    return code.CallEditDo( "DoArgumentSet", { action.Values[0], code.Arguments[idx].Arg + action.Values[1] } );
+    return action.CallEditDo( code, "DoArgumentSet", { action.Values[0], code.Arguments[idx].Arg + action.Values[1] } );
 }
 
 // ? DoArgumentSetType:INDEX,TYPE
 static ReDefine::ScriptEditReturn DoArgumentSetType( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
-    if( !code.IsBefore( __FUNCTION__ ) )
+    if( !action.IsBefore( __FUNCTION__ ) )
         return action.Invalid();
 
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     code.Arguments[idx].Type = action.Values[1];
@@ -814,17 +837,17 @@ static ReDefine::ScriptEditReturn DoArgumentLookup( ReDefine::ScriptEditAction& 
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     bool        unknown = false;
     std::string counter;
 
-    if( code.IsValues( nullptr, action.Values, 2 ) )
+    if( action.IsValues( nullptr, 2 ) )
     {
         if( action.Values[1] == "!UNKNOWN!" )
             unknown = true;
@@ -832,25 +855,25 @@ static ReDefine::ScriptEditReturn DoArgumentLookup( ReDefine::ScriptEditAction& 
             counter = action.Values[1];
     }
 
-    if( code.Parent->TextIsInt( code.Arguments[idx].Arg ) )
+    if( action.Root->TextIsInt( code.Arguments[idx].Arg ) )
     {
         int         val = -1;
         std::string value;
 
-        if( !code.Parent->TextGetInt( code.Arguments[idx].Arg, val ) )
+        if( !action.Root->TextGetInt( code.Arguments[idx].Arg, val ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "cannot convert string<%s> into integer", code.Arguments[idx].Arg.c_str() );
+            action.Root->WARNING( __FUNCTION__, "cannot convert string<%s> into integer", code.Arguments[idx].Arg.c_str() );
             return action.Success(); // ???
         }
 
-        if( !code.Parent->GetDefineName( code.Arguments[idx].Arg, val, value ) )
+        if( !action.Root->GetDefineName( code.Arguments[idx].Arg, val, value ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
+            action.Root->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
 
             if( unknown )
-                code.Parent->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
+                action.Root->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
             else if( !counter.empty() )
-                code.Parent->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
+                action.Root->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
 
             return action.Success();
         }
@@ -858,14 +881,14 @@ static ReDefine::ScriptEditReturn DoArgumentLookup( ReDefine::ScriptEditAction& 
     else
     {
         int val = -1;
-        if( !code.Parent->GetDefineValue( code.Arguments[idx].Type, code.Arguments[idx].Arg, val ) )
+        if( !action.Root->GetDefineValue( code.Arguments[idx].Type, code.Arguments[idx].Arg, val ) )
         {
-            code.Parent->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
+            action.Root->WARNING( __FUNCTION__, "unknown %s<%s>", code.Arguments[idx].Type.c_str(), code.Arguments[idx].Arg.c_str() );
 
             if( unknown )
-                code.Parent->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
+                action.Root->Status.Process.Counters["!Unknown " + code.Arguments[idx].Type + "!"][code.Arguments[idx].Arg]++;
             else if( !counter.empty() )
-                code.Parent->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
+                action.Root->Status.Process.Counters[counter][code.Arguments[idx].Arg]++;
 
             return action.Success();
         }
@@ -893,16 +916,16 @@ static ReDefine::ScriptEditReturn DoArgumentsErase( ReDefine::ScriptEditAction& 
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     // try to keep original formatting of 1st argument
-    if( code.Parent->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && idx == 0 && code.Arguments.size() >= 2 )
-        code.Arguments[1].Raw = code.Parent->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[1].Arg );
+    if( action.Root->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && idx == 0 && code.Arguments.size() >= 2 )
+        code.Arguments[1].Raw = action.Root->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[1].Arg );
 
     code.Arguments.erase( code.Arguments.begin() + idx );
 
@@ -918,24 +941,24 @@ static ReDefine::ScriptEditReturn DoArgumentsMoveBack( ReDefine::ScriptEditActio
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     std::string arg, type = code.Arguments[idx].Type;
     // try to keep original formatting of arguments
-    if( code.Parent->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && code.Arguments.size() >= 2 )
-        arg = code.Parent->TextGetReplaced( code.Arguments.back().Raw, code.Arguments.back().Arg, code.Arguments[idx].Arg );
+    if( action.Root->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && code.Arguments.size() >= 2 )
+        arg = action.Root->TextGetReplaced( code.Arguments.back().Raw, code.Arguments.back().Arg, code.Arguments[idx].Arg );
     else
         arg = code.Arguments[idx].Arg;
 
-    if( code.CallEditDo( "DoArgumentsErase", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
+    if( action.CallEditDo( code, "DoArgumentsErase", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
         return action.Invalid();
 
-    if( code.CallEditDo( "DoArgumentsPushBack", { arg, type } ) != ReDefine::ScriptEditReturn::Success )
+    if( action.CallEditDo( code, "DoArgumentsPushBack", { arg, type } ) != ReDefine::ScriptEditReturn::Success )
         return action.Invalid();
 
     return action.Success();
@@ -950,27 +973,27 @@ static ReDefine::ScriptEditReturn DoArgumentsMoveFront( ReDefine::ScriptEditActi
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetINDEX( __FUNCTION__, action.Values[0], idx ) )
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
     std::string arg0, arg1, type = code.Arguments[idx].Type;
     // try to keep original formatting of arguments
-    if( code.Parent->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && code.Arguments.size() >= 2 )
+    if( action.Root->ScriptFormatting == ReDefine::ScriptCode::Format::UNCHANGED && code.Arguments.size() >= 2 )
     {
-        arg0 = code.Parent->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[idx].Arg );
-        arg1 = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, code.Arguments.front().Arg );
+        arg0 = action.Root->TextGetReplaced( code.Arguments.front().Raw, code.Arguments.front().Arg, code.Arguments[idx].Arg );
+        arg1 = action.Root->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, code.Arguments.front().Arg );
     }
     else
         arg0 = code.Arguments[idx].Arg;
 
-    if( code.CallEditDo( "DoArgumentsErase", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
+    if( action.CallEditDo( code, "DoArgumentsErase", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
         return action.Invalid();
 
-    if( code.CallEditDo( "DoArgumentsPushFront", { arg0, type } ) != ReDefine::ScriptEditReturn::Success )
+    if( action.CallEditDo( code, "DoArgumentsPushFront", { arg0, type } ) != ReDefine::ScriptEditReturn::Success )
         return action.Invalid();
 
     if( !arg1.empty() )
@@ -987,20 +1010,22 @@ static ReDefine::ScriptEditReturn DoArgumentsPushBack( ReDefine::ScriptEditActio
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     std::string type = "?";
 
-    if( code.IsValues( nullptr, action.Values, 2 ) )
-        type = action.Values[1];
+    if( action.IsValues( nullptr, 2 ) )
+    {
+        if( !action.GetTYPE( __FUNCTION__, 1, true ) )
+            return action.Invalid();
 
-    if( !code.GetTYPE( __FUNCTION__, type, true ) )
-        return action.Invalid();
+        type = action.Values[1];
+    }
 
     ReDefine::ScriptCode::Argument argument;
     argument.Raw = action.Values[0];
-    argument.Arg = code.Parent->TextGetTrimmed( action.Values[0] );
+    argument.Arg = action.Root->TextGetTrimmed( action.Values[0] );
     argument.Type = type;
 
     code.Arguments.push_back( argument );
@@ -1011,25 +1036,27 @@ static ReDefine::ScriptEditReturn DoArgumentsPushBack( ReDefine::ScriptEditActio
 // ? DoArgumentsPushFront:STRING,
 // ? DoArgumentsPushFront:STRING,TYPE
 // ! Adds script function argument as first in list.
-static ReDefine::ScriptEditReturn DoArgumentsPushFront( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code  )
+static ReDefine::ScriptEditReturn DoArgumentsPushFront( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     std::string type = "?";
 
-    if( code.IsValues( nullptr, action.Values, 2 ) )
-        type = action.Values[1];
+    if( action.IsValues( nullptr, 2 ) )
+    {
+        if( !action.GetTYPE( __FUNCTION__, 1, true ) )
+            return action.Invalid();
 
-    if( !code.GetTYPE( __FUNCTION__, type, true ) )
-        return action.Invalid();
+        type = action.Values[1];
+    }
 
     ReDefine::ScriptCode::Argument argument;
     argument.Raw = action.Values[0];
-    argument.Arg = code.Parent->TextGetTrimmed( action.Values[0] );
+    argument.Arg = action.Root->TextGetTrimmed( action.Values[0] );
     argument.Type = type;
     code.Arguments.insert( code.Arguments.begin(), argument );
 
@@ -1044,15 +1071,15 @@ static ReDefine::ScriptEditReturn DoArgumentsResize( ReDefine::ScriptEditAction&
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     unsigned int size;
-    if( !code.GetUINT( __FUNCTION__, action.Values[0], size ) )
+    if( !action.GetUINT( __FUNCTION__, 0, size ) )
         return action.Invalid();
 
     if( !size )
-        return code.CallEditDo( "DoArgumentsClear", {} );
+        return action.CallEditDo( code, "DoArgumentsClear", {} );
 
     code.Arguments.resize( size );
 
@@ -1069,12 +1096,12 @@ static ReDefine::ScriptEditReturn DoArgumentsResize( ReDefine::ScriptEditAction&
 }
 
 // ? DoFileCount:STRING
-static ReDefine::ScriptEditReturn DoFileCount( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+static ReDefine::ScriptEditReturn DoFileCount( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& /* code */ )
 {
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    code.Parent->Status.Process.Counters[action.Values[0]][code.Parent->Status.Current.File]++;
+    action.Root->Status.Process.Counters[action.Values[0]][action.Root->Status.Current.File]++;
 
     return action.Success();
 }
@@ -1087,9 +1114,9 @@ static ReDefine::ScriptEditReturn DoFunction( ReDefine::ScriptEditAction& action
 {
     code.SetType( ReDefine::ScriptCode::Flag::FUNCTION );
 
-    if( code.IsValues( nullptr, action.Values, 1 ) )
+    if( action.IsValues( nullptr, 1 ) )
     {
-        if( code.CallEditDo( "DoNameSet", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
+        if( action.CallEditDo( code, "DoNameSet", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
             return action.Invalid();
     }
 
@@ -1109,19 +1136,19 @@ static ReDefine::ScriptEditReturn DoFunctionAround( ReDefine::ScriptEditAction& 
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     bool        wasFunction = code.IsFlag( ReDefine::ScriptCode::Flag::FUNCTION );
     std::string full = code.GetFullString();
 
-    code.CallEditDo( "DoFunction", { action.Values[0] } );
+    action.CallEditDo( code, "DoFunction", { action.Values[0] } );
 
     if( wasFunction )
-        code.CallEditDo( "DoArgumentsClear" );
+        action.CallEditDo( code, "DoArgumentsClear" );
 
-    code.CallEditDo( "DoArgumentsPushBack", { full } );
-    code.CallEditDo( "DoOperatorClear" );
+    action.CallEditDo( code, "DoArgumentsPushBack", { full } );
+    action.CallEditDo( code, "DoOperatorClear" );
 
     code.ReturnType = "?";
 
@@ -1134,16 +1161,16 @@ static ReDefine::ScriptEditReturn DoFunctionAroundArgument( ReDefine::ScriptEdit
     if( !code.IsFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 2 ) )
+    if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
     unsigned int idx;
-    if( !code.GetUINT( __FUNCTION__, action.Values[1], idx ) )
+    if( !action.GetUINT( __FUNCTION__, 1, idx ) )
         return action.Invalid();
 
     // there's no way to know what original formatting should be, when running with ScriptCode::Format::UNCHANGED;
     // best bet is to surround argument with f() preserving leading/trailing spaces
-    code.Arguments[idx].Raw = code.Parent->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, action.Values[0] + "(" + code.Arguments[idx].Arg + ")" );
+    code.Arguments[idx].Raw = action.Root->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, action.Values[0] + "(" + code.Arguments[idx].Arg + ")" );
     code.Arguments[idx].Arg = action.Values[0] + "(" + code.Arguments[idx].Arg + ")";
     code.Arguments[idx].Type = "?"; // TODO? allow to set via action values
 
@@ -1153,33 +1180,33 @@ static ReDefine::ScriptEditReturn DoFunctionAroundArgument( ReDefine::ScriptEdit
 // ? DoLogCurrentLine
 // ? DoLogCurrentLine:STRING
 // ! Adds an entry with currently processed script function/variable to one of log files.
-static ReDefine::ScriptEditReturn DoLogCurrentLine( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+static ReDefine::ScriptEditReturn DoLogCurrentLine( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& /* code */ )
 {
-    ReDefine::SStatus::SCurrent previous = code.Parent->Status.Current;
-    code.Parent->Status.Current.Line.clear();
+    ReDefine::SStatus::SCurrent previous = action.Root->Status.Current;
+    action.Root->Status.Current.Line.clear();
 
     if( !action.Values.empty() && !action.Values[0].empty() )
     {
         if( action.Values[0] == "DEBUG" )
         {
-            code.Parent->DEBUG( nullptr, "%%%%" );
-            code.Parent->Status.Current.Clear();
-            code.Parent->DEBUG( nullptr, "   %s", previous.Line.c_str() );
+            action.Root->DEBUG( nullptr, "%%%%" );
+            action.Root->Status.Current.Clear();
+            action.Root->DEBUG( nullptr, "   %s", previous.Line.c_str() );
         }
         else if( action.Values[0] == "WARNING" )
         {
-            code.Parent->WARNING( nullptr, "%%%%" );
-            code.Parent->Status.Current.Clear();
-            code.Parent->WARNING( nullptr, "   %s", previous.Line.c_str() );
+            action.Root->WARNING( nullptr, "%%%%" );
+            action.Root->Status.Current.Clear();
+            action.Root->WARNING( nullptr, "   %s", previous.Line.c_str() );
         }
     }
     else
     {
-        code.Parent->ILOG( "%%%%" );
-        code.Parent->LOG( "   %s", previous.Line.c_str() );
+        action.Root->ILOG( "%%%%" );
+        action.Root->LOG( "   %s", previous.Line.c_str() );
     }
 
-    code.Parent->Status.Current = previous;
+    action.Root->Status.Current = previous;
 
     return action.Success();
 }
@@ -1190,10 +1217,10 @@ static ReDefine::ScriptEditReturn DoNameCount( ReDefine::ScriptEditAction& actio
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    code.Parent->Status.Process.Counters[action.Values[0]][code.Name]++;
+    action.Root->Status.Process.Counters[action.Values[0]][code.Name]++;
 
     return action.Success();
 }
@@ -1205,7 +1232,7 @@ static ReDefine::ScriptEditReturn DoNameSet( ReDefine::ScriptEditAction& action,
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     code.Name = action.Values[0];
@@ -1235,12 +1262,12 @@ static ReDefine::ScriptEditReturn DoOperatorSet( ReDefine::ScriptEditAction& act
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
     code.Operator = action.Values[0];
 
-    if( code.IsValues( nullptr, action.Values, 2 ) )
+    if( action.IsValues( nullptr, 2 ) )
         code.OperatorArgument = action.Values[1];
 
     return action.Success();
@@ -1248,9 +1275,9 @@ static ReDefine::ScriptEditReturn DoOperatorSet( ReDefine::ScriptEditAction& act
 
 // ? DoRestart
 // ! Restarts line processing after applying changes.
-static ReDefine::ScriptEditReturn DoRestart( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+static ReDefine::ScriptEditReturn DoRestart( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& /* code */ )
 {
-    code.SetFlag( ReDefine::ScriptCode::Flag::RESTART );
+    action.SetFlag( ReDefine::ScriptEditAction::Flag::RESTART );
 
     return action.Success();
 }
@@ -1259,16 +1286,16 @@ static ReDefine::ScriptEditReturn DoRestart( ReDefine::ScriptEditAction& action,
 // ! Sets script function/variable return type.
 static ReDefine::ScriptEditReturn DoReturnSetType( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
-    if( !code.IsBefore( __FUNCTION__ ) )
+    if( !action.IsBefore( __FUNCTION__ ) )
         return action.Invalid();
 
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
         return action.Invalid();
 
-    if( !code.IsValues( __FUNCTION__, action.Values, 1 ) )
+    if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    if( !code.GetTYPE( __FUNCTION__, action.Values[0] ) )
+    if( !action.GetTYPE( __FUNCTION__, 0 ) )
         return action.Invalid();
 
     code.ReturnType = action.Values[0];
@@ -1285,15 +1312,15 @@ static ReDefine::ScriptEditReturn DoVariable( ReDefine::ScriptEditAction& action
 {
     if( code.IsFunction( nullptr ) )
     {
-        if( code.CallEditDo( "DoArgumentsClear" ) != ReDefine::ScriptEditReturn::Success )
+        if( action.CallEditDo( code, "DoArgumentsClear" ) != ReDefine::ScriptEditReturn::Success )
             return action.Invalid();
     }
 
     code.SetType( ReDefine::ScriptCode::Flag::VARIABLE );
 
-    if( code.IsValues( nullptr, action.Values, 1 ) )
+    if( action.IsValues( nullptr, 1 ) )
     {
-        if( code.CallEditDo( "DoNameSet", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
+        if( action.CallEditDo( code, "DoNameSet", { action.Values[0] } ) != ReDefine::ScriptEditReturn::Success )
             return action.Invalid();
     }
 
@@ -1507,15 +1534,15 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     ignore = true;
                 }
 
-                if( edit.Conditions.empty() )
+                if( (before || after) && edit.Conditions.empty() )
                 {
-                    WARNING( nullptr, "script edit<%s> ignored : no conditions", edit.Name.c_str() );
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore'/'RunAfter' actions require at least one condition", edit.Name.c_str() );
                     ignore = true;
                 }
 
-                if( edit.Results.empty() )
+                if( (before || after) && edit.Results.empty() )
                 {
-                    WARNING( nullptr, "script edit<%s> ignored : no results", edit.Name.c_str() );
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore'/'RunAfter' actions require at least one result", edit.Name.c_str() );
                     ignore = true;
                 }
 
@@ -1542,12 +1569,12 @@ void ReDefine::ProcessScript( const std::string& path, const std::string& filena
         WARNING( __FUNCTION__, "script<%s> path is empty", filename.c_str() );
         return;
     }
-    else if( !std_filesystem::exists( path ) )
+    else if( !std::filesystem::exists( path ) )
     {
         WARNING( __FUNCTION__, "script<%s> path<%s> does not exists", filename.c_str(), path.c_str() );
         return;
     }
-    else if( !std_filesystem::is_directory( path ) )
+    else if( !std::filesystem::is_directory( path ) )
     {
         WARNING( __FUNCTION__, "script<%s> path<%s> is not a directory", filename.c_str(), path.c_str() );
         return;
@@ -1580,7 +1607,7 @@ public:
             virtual bool Load( const std::string& filename, std::vector<char>& data ) override
             {
                 std::string fname = filename;
-                Parent->DEBUG(__FUNCTION__, "%s", fname.c_str());
+                Parent->DEBUG( __FUNCTION__, "%s", fname.c_str() );
 
                 auto it = DataMap.find( filename );
                 if( it != DataMap.end() )
@@ -1610,7 +1637,7 @@ public:
         // show time!
         auto              read = std::chrono::system_clock::now();
         std::vector<char> data;
-        DEBUG(nullptr, "READ! %s %s", path.c_str(), filename.c_str());
+        DEBUG( nullptr, "READ! %s %s", path.c_str(), filename.c_str() );
         if( !ReadFile( TextGetFilename( path, filename ), data ) )
             return;
 
@@ -1773,17 +1800,13 @@ public:
                 code.Change( "script code", code.GetFullString() );
 
                 // "preprocess"
-                code.SetFlag( ScriptCode::Flag::BEFORE );
-                ProcessScriptEdit( EditBefore, code );
-                code.UnsetFlag( ScriptCode::Flag::BEFORE );
+                ProcessScriptEdit( ScriptEditAction::Flag::BEFORE, EditBefore, code, restart );
 
                 // "process"
                 ProcessScriptReplacements( code );
 
                 // "postprocess"
-                code.SetFlag( ScriptCode::Flag::AFTER );
-                ProcessScriptEdit( EditAfter, code );
-                code.UnsetFlag( ScriptCode::Flag::AFTER );
+                ProcessScriptEdit( ScriptEditAction::Flag::AFTER, EditAfter, code, restart );
 
                 // check for changes
                 code.SetFullString();
@@ -1798,12 +1821,8 @@ public:
                     line = TextGetReplaced( line, codeOld.Full, code.Full );
 
                 // handle restart
-                if( code.IsFlag( ScriptCode::Flag::RESTART ) )
-                {
-                    code.UnsetFlag( ScriptCode::Flag::RESTART );
+                if( restart )
                     restartCount++;
-                    restart = true;
-                }
             }
         }
 
@@ -1965,14 +1984,13 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
     }
 }
 
-void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld )
+void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld, bool& restart )
 {
     // editing must always works on backup to prevent massive screwup
     // original code will be updated only if there's no problems with *any* condition/result function
     // that, plus (intentional) massive spam in warning log should be enough to get user's attention (yeah, i don't belive that either... :P)
     ScriptCode        code = codeOld;
-    const std::string timing = code.IsFlag( ScriptCode::Flag::BEFORE ) ? "Before" : code.IsFlag( ScriptCode::Flag::AFTER ) ? "After" : "";
-
+    const std::string timing = initFlag == ScriptEditAction::Flag::BEFORE ? "Before" : initFlag == ScriptEditAction::Flag::AFTER ? "After" : initFlag == ScriptEditAction::Flag::______ ? "______" : "";
 
     for( const auto& it : edits )
     {
@@ -1980,6 +1998,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
         {
             const ScriptDebugChanges debug = edit.Debug ? ScriptDebugChanges::ALL : DebugChanges;
             ScriptEditReturn         editReturn = ScriptEditReturn::Invalid;
+            ScriptEditAction::Flag   editFlag = initFlag;
 
             bool                     run = false, first = true;
             const std::string        change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
@@ -1989,8 +2008,8 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
             // all conditions needs to be satisfied
             for( const ScriptEdit::Action& condition : edit.Conditions )
             {
-                ScriptEditAction editAction( condition );
-                editReturn = code.CallEditIf( editAction );
+                ScriptEditAction editAction( this, condition, editFlag );
+                editReturn = editAction.CallEditIf( code );
 
                 if( editReturn != ScriptEditReturn::Invalid )
                 {
@@ -2031,8 +2050,8 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 if( debug > ScriptDebugChanges::NONE )
                     log = " " + result.Name + (!result.Values.empty() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
-                ScriptEditAction editAction( result );
-                editReturn = code.CallEditDo( editAction );
+                ScriptEditAction editAction( this, result, editFlag );
+                editReturn = editAction.CallEditDo( code );
 
                 if( editReturn != ScriptEditReturn::Invalid )
                 {
@@ -2040,7 +2059,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                         run = true;
                     else if( editReturn == ScriptEditReturn::Failure )
                     {
-                        WARNING( nullptr, "internal error : result returned failure" );
+                        WARNING( nullptr, "internal error : result reported failure" );
                         run = false;
                     }
                 }
@@ -2063,7 +2082,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
                 code.SetFlag( ScriptCode::Flag::EDITED );
 
                 // handle restart
-                if( code.IsFlag( ScriptCode::Flag::RESTART ) )
+                if( editAction.IsFlag( ScriptEditAction::Flag::RESTART ) )
                 {
                     // handle restart+refresh
                     if( code.IsFlag( ScriptCode::Flag::REFRESH ) )
@@ -2074,6 +2093,7 @@ void ReDefine::ProcessScriptEdit( const std::map<unsigned int, std::vector<ReDef
 
                     // push changes
                     codeOld = code;
+                    restart = true;
 
                     return;
                 }

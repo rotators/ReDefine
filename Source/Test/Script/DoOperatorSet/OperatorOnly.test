@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoOperatorSet:-
+ORIGIN f() + 1
+EXPECT f() - 1

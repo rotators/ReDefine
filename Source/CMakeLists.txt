@@ -14,8 +14,6 @@ if( DEFINED ENV{CLANG_TIDY} )
 	set( CMAKE_CXX_CLANG_TIDY $ENV{CLANG_TIDY} )
 endif()
 
-include( StdFilesystem )
-
 add_library( ReDefineLib STATIC )
 target_sources( ReDefineLib
 	PUBLIC
@@ -108,9 +106,6 @@ else() # assumes UNIX
 		target_link_libraries( ReDefine PRIVATE -static-libstdc++ )
 	endif()
 endif()
-
-
-StdFilesystem( ReDefineLib )
 
 add_subdirectory( Test )
 

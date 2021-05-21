@@ -1,7 +1,8 @@
+#include <filesystem>
+
 #include "Ini.h"
 
 #include "ReDefine.h"
-#include "StdFilesystem.h"
 
 static const std::regex IsSimpleMath( "^([\\-]?[0-9]+)[\\t\\ ]*(\\*|\\/|\\+|\\-)[\\t\\ ]*([\\-]?[0-9]+)$" );
 
@@ -232,12 +233,12 @@ bool ReDefine::ProcessHeader( const std::string& path, const ReDefine::Header& h
         WARNING( __FUNCTION__, "header<%s> path is empty", header.Filename.c_str() );
         return false;
     }
-    else if( !std_filesystem::exists( path ) )
+    else if( !std::filesystem::exists( path ) )
     {
         WARNING( __FUNCTION__, "header<%s> path<%s> does not exists", header.Filename.c_str(), path.c_str() );
         return false;
     }
-    else if( !std_filesystem::is_directory( path ) )
+    else if( !std::filesystem::is_directory( path ) )
     {
         WARNING( __FUNCTION__, "header<%s> path<%s> is not a directory", header.Filename.c_str(), path.c_str() );
         return false;

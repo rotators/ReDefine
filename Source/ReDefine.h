@@ -217,14 +217,32 @@ public:
         ScriptEdit();
     };
 
-    // Read-only version of ScriptEdit::Action,
+    // Read-only version of ScriptEdit::Action (with extra helper functions),
     // passed to conditions/results functions
     struct ScriptEditAction
     {
+        enum class Flag : unsigned char
+        {
+            BEFORE  = 0x01, // set when processing RunBefore edits
+            AFTER   = 0x02, // set when processing RunAfter edits
+            ______  = 0x04,
+
+            RESTART = 0x10  // set by DoRestart; forces restart of line processing keeping changes already made to code
+        };
+
         const std::string&              Name;
         const std::vector<std::string>& Values;
 
-        ScriptEditAction( const ScriptEdit::Action& action );
+        ReDefine*                       Root;
+        Flag&                           Flags;
+
+        ScriptEditAction( void*  root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags  );
+
+        //
+
+        bool IsFlag( ScriptEditAction::Flag flag ) const;
+        void SetFlag( ScriptEditAction::Flag flag );
+        void UnsetFlag( ScriptEditAction::Flag flag );
 
         //
 
@@ -247,6 +265,24 @@ public:
         {
             return ScriptEditReturn::Success;
         }
+
+        //
+
+        bool IsBefore( const char* caller ) const;
+        bool IsAfter( const char* caller ) const;
+        bool IsValues( const char* caller, const unsigned int& count ) const;
+
+        bool GetINDEX( const char* caller, const unsigned int& val, const ReDefine::ScriptCode& code, unsigned int& out ) const;
+        bool GetTYPE( const char* caller, const unsigned int& val, bool allowUnknown = false ) const;
+        bool GetUINT( const char* caller, const unsigned int& val, unsigned int& out, const std::string& name = "UINT" ) const;
+
+        // checks if condition action exists before calling it
+        ScriptEditReturn CallEditIf( const ScriptCode& code );
+        ScriptEditReturn CallEditIf( const ScriptCode& code, const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
+
+        // checks if result action exists before calling it
+        ScriptEditReturn CallEditDo( ScriptCode& code );
+        ScriptEditReturn CallEditDo( ScriptCode& code, const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
     };
 
     struct ScriptFile
@@ -263,28 +299,26 @@ public:
             MEDIUM,        // func(spaces, between, arguments)
             TIGHT,         // func(no,spaces,allowed)
 
-            MIN = UNCHANGED,
-            MAX = TIGHT
+            MIN     = UNCHANGED,
+            MAX     = TIGHT,
+            DEFAULT = MEDIUM
         };
 
         // internal flags set for all ScriptCode
-        enum class Flag : unsigned short
+        enum class Flag : unsigned char
         {
             NONE     = 0,
 
             // types
 
-            RESERVED = 0x001,
-            VARIABLE = 0x002,  // set when code looks like a variable
-            FUNCTION = 0x004,  // set when code looks like a function
+            RESERVED = 0x01,
+            VARIABLE = 0x02,  // set when code looks like a variable
+            FUNCTION = 0x04,  // set when code looks like a function
 
             //
 
-            BEFORE   = 0x010,  // set when processing RunBefore edits
-            AFTER    = 0x020,  // set when processing RunAfter edits
-            EDITED   = 0x040,  // set if any result function has been executed
-            REFRESH  = 0x080,  // set when code needs standard processing between edits
-            RESTART  = 0x100   // set by DoRestart; forces restart of line processing keeping changes already made to code
+            EDITED   = 0x10, // set if any result function has been executed
+            REFRESH  = 0x20, // set when code needs standard processing between edits
         };
 
         struct Argument
@@ -333,25 +367,10 @@ public:
 
         // helpers
 
-        bool IsBefore( const char* caller ) const;
-        bool IsAfter( const char* caller ) const;
         bool IsVariable( const char* caller ) const;
         bool IsFunction( const char* caller ) const;
         bool IsFunctionKnown( const char* caller ) const;
         bool IsVariableOrFunction( const char* caller ) const;
-        bool IsValues( const char* caller, const std::vector<std::string>& values, const unsigned int& count ) const;
-
-        bool GetINDEX( const char* caller, const std::string& value, unsigned int& val ) const;
-        bool GetTYPE( const char* caller, const std::string& value, bool allowUnknown = false ) const;
-        bool GetUINT( const char* caller, const std::string& value, unsigned int& val, const std::string& name = "UINT" ) const;
-
-        // checks if condition action exists before calling it
-        ScriptEditReturn CallEditIf( ScriptEditAction& action ) const;
-        ScriptEditReturn CallEditIf( const std::string& name, std::vector<std::string> values = std::vector<std::string>() ) const;
-
-        // checks if result action exists before calling it
-        ScriptEditReturn CallEditDo( ScriptEditAction& action );
-        ScriptEditReturn CallEditDo( const std::string& name, std::vector<std::string> values = std::vector<std::string>() );
 
         void Change( const std::string& left, const std::string& right = std::string() );
         void ChangeLog();
@@ -371,6 +390,7 @@ public:
     std::map<std::string, ScriptEditDo>             EditDo;
     std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
     std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
+    std::map<unsigned int, std::vector<ScriptEdit>> Edit______;
 
     ScriptDebugChanges                              DebugChanges;
     bool                                            UseParser;
@@ -388,7 +408,7 @@ public:
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
     void ProcessScriptReplacements( ScriptCode& code, bool refresh = false );
-    void ProcessScriptEdit( const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code );
+    void ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code, bool& restart );
 
     //
     // Text

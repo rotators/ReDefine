@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfVariable DoOperatorSet:-,2
+ORIGIN one + 1
+EXPECT one - 2

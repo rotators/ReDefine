@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter !IfFunction:a DoNameSet:c
+ORIGIN b()
+EXPECT c()

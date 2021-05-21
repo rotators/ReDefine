@@ -1,10 +1,10 @@
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
+#include <filesystem>
 #include <sstream>
 
 #include "ReDefine.h"
-#include "StdFilesystem.h"
 
 static std::regex IsBlank( "^[\\t\\ ]*$" );
 static std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
@@ -48,7 +48,7 @@ std::string ReDefine::TextGetFilename( const std::string& path, const std::strin
     sfilename.erase( 0, sfilename.find_first_not_of( "\\/" ) ); // trim left
     spath.erase( spath.find_last_not_of( "\\/" ) + 1 );         // trim right
 
-    std_filesystem::path full = std_filesystem::path( spath ) / sfilename;
+    std::filesystem::path full = std::filesystem::path( spath ) / sfilename;
 
     // DEBUG( __FUNCTION__, "[%s][%s] -> [%s][%s] -> [%s]", path.c_str(), filename.c_str(), spath.c_str(), sfilename.c_str(), full.string().c_str() );
 
@@ -239,7 +239,7 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         variable.Operator = it->str( 2 );
         variable.OperatorArgument = it->str( 3 );
 
-        if( !IsOperator( variable.Operator ) )
+        if( TextGetTrimmed( variable.Operator ).size() && !IsOperator( variable.Operator ) )
         {
             // DEBUG(__FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
             continue;
@@ -248,7 +248,7 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         result.push_back( variable );
         count++;
 
-        // DEBUG(__FUNCTION__, "VAR<%s>", variable.Name.c_str());
+        // DEBUG(__FUNCTION__, "VAR C!<%s>", variable.Name.c_str());
     }
 
     return count;

@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoFunctionAroundArgument:b,0
+ORIGIN a(c, d)
+EXPECT a(b(c), d)

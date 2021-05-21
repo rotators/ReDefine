@@ -1,10 +1,10 @@
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 
 #include "Ini.h"
 
 #include "ReDefine.h"
-#include "StdFilesystem.h"
 
 //
 
@@ -55,7 +55,7 @@ ReDefine::ReDefine() :
     UseParser( false ),
     ScriptFormattingForced( false ),
     ScriptFormattingUnix( false ),
-    ScriptFormatting( ScriptCode::Format::MEDIUM )
+    ScriptFormatting( ScriptCode::Format::DEFAULT )
 {}
 
 ReDefine::~ReDefine()
@@ -99,14 +99,14 @@ void ReDefine::RemoveLogs()
 {
     // remove logfiles from previous run
 
-    if( !LogFile.empty() && std_filesystem::exists( LogFile ) )
-        std_filesystem::remove( LogFile );
+    if( !LogFile.empty() && std::filesystem::exists( LogFile ) )
+        std::filesystem::remove( LogFile );
 
-    if( !LogWarning.empty() && std_filesystem::exists( LogWarning ) )
-        std_filesystem::remove( LogWarning );
+    if( !LogWarning.empty() && std::filesystem::exists( LogWarning ) )
+        std::filesystem::remove( LogWarning );
 
-    if( !LogDebug.empty() && std_filesystem::exists( LogDebug ) )
-        std_filesystem::remove( LogDebug );
+    if( !LogDebug.empty() && std::filesystem::exists( LogDebug ) )
+        std::filesystem::remove( LogDebug );
 }
 
 // files reading
@@ -116,7 +116,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
     lines.clear();
 
     const std::string file = TextGetReplaced( filename, "\\", "/" );
-    if( !std_filesystem::exists( file ) )
+    if( !std::filesystem::exists( file ) )
     {
         WARNING( nullptr, "cannot find file<%s>", file.c_str() );
         return false;
@@ -124,7 +124,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
 
     // don't waste time on empty files
     // also, while( !std::ifstream::eof() ) goes wild on empty files
-    if( std_filesystem::file_size( file ) == 0 )
+    if( std::filesystem::file_size( file ) == 0 )
         return true;
 
     std::ifstream fstream;
@@ -161,14 +161,14 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
     data.clear();
 
     const std::string file = TextGetReplaced( filename, "\\", "/" );
-    if( !std_filesystem::exists( file ) )
+    if( !std::filesystem::exists( file ) )
     {
         WARNING( nullptr, "cannot find file<%s>", file.c_str() );
         return false;
     }
 
     // don't waste time on empty files
-    std::uintmax_t size = std_filesystem::file_size( file );
+    std::uintmax_t size = std::filesystem::file_size( file );
     if( size == 0 )
         return true;
 
@@ -228,9 +228,9 @@ void ReDefine::ProcessHeaders( const std::string& path )
     // (which isn't such a bad idea - current headers reader is quite bad, as it doesn't understand /* long comments */ yet)
     if( path.empty() )
         WARNING( __FUNCTION__, "headers path is empty" );
-    else if( !std_filesystem::exists( path ) )
+    else if( !std::filesystem::exists( path ) )
         WARNING( __FUNCTION__, "headers path<%s> does not exists", path.c_str() );
-    else if( !std_filesystem::is_directory( path ) )
+    else if( !std::filesystem::is_directory( path ) )
         WARNING( __FUNCTION__, "headers path<%s> is not a directory", path.c_str() );
     else
     {
@@ -387,12 +387,12 @@ void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* =
         WARNING( __FUNCTION__, "scripts path is empty" );
         return;
     }
-    else if( !std_filesystem::exists( path ) )
+    else if( !std::filesystem::exists( path ) )
     {
         WARNING( __FUNCTION__, "scripts path<%s> does not exists", path.c_str() );
         return;
     }
-    else if( !std_filesystem::is_directory( path ) )
+    else if( !std::filesystem::is_directory( path ) )
     {
         WARNING( __FUNCTION__, "scripts path<%s> is not a directory", path.c_str() );
         return;
@@ -402,9 +402,9 @@ void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* =
 
     std::vector<std::string> scripts;
 
-    for( const auto& file : std_filesystem::recursive_directory_iterator( path ) )
+    for( const auto& file : std::filesystem::recursive_directory_iterator( path ) )
     {
-        if( !std_filesystem::is_regular_file( file ) ) // TODO? symlinks
+        if( !std::filesystem::is_regular_file( file ) ) // TODO? symlinks
             continue;
 
         if( TextGetLower( file.path().extension().string() ) != ".ssl" )
