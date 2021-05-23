@@ -12,7 +12,8 @@ static std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
 static std::regex IsInt( "^[\\-]?[0-9]+$" );
 static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
-static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|bw[a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
+static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|[Bb][Ww][a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
+static std::regex GetVariablesSimple( "^[\\t\\ ]*([A-Za-z0-9_]+)[\\t\\ ]*\\;[\\t\\ ]*$" );
 
 static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
 static std::regex GetFunctionsQuotedText( "\".*?\"" );
@@ -230,6 +231,7 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
 {
     unsigned int count = 0;
 
+    // variable <operator> <operator value>
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariables ), end = std::sregex_iterator(); it != end; ++it )
     {
         ScriptCode variable( ScriptCode::Flag::VARIABLE );
@@ -239,9 +241,18 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         variable.Operator = it->str( 2 );
         variable.OperatorArgument = it->str( 3 );
 
-        if( TextGetTrimmed( variable.Operator ).size() && !IsOperator( variable.Operator ) )
+        if( !IsOperator( variable.Operator ) )
         {
-            // DEBUG(__FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
+            /*
+            if( TextGetLower( variable.Operator ).starts_with( "bw" ) )
+            {
+                DEBUG(__FUNCTION__, "Unknown bitwise operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
+            }
+            else
+            {
+                DEBUG(__FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
+            }
+            */
             continue;
         }
 
@@ -249,6 +260,20 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         count++;
 
         // DEBUG(__FUNCTION__, "VAR C!<%s>", variable.Name.c_str());
+    }
+
+    // variable;
+    for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariablesSimple ), end = std::sregex_iterator(); it != end; ++it )
+    {
+        ScriptCode variable( ScriptCode::Flag::VARIABLE );
+
+        variable.Full = it->str( 1 );
+        variable.Name = it->str( 1 );
+
+        result.push_back( variable );
+        count++;
+
+        // DEBUG(__FUNCTION__, "VAR S!<%s>", variable.Name.c_str());
     }
 
     return count;
