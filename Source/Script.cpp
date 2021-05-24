@@ -136,6 +136,51 @@ bool ReDefine::ScriptEditAction::IsValues( const char* caller, const uint32_t& c
     return true;
 }
 
+bool ReDefine::ScriptEditAction::GetCACHE( const char* caller, const uint32_t& val ) const
+{
+    if( val >= Values.size() )
+    {
+        if( caller )
+            Root->WARNING( caller, "wrong number of arguments : required<%u> provided<%u>", val, Values.size() ); // TODO bit misleading
+
+        return false;
+    }
+
+    if( Values[val].empty() )
+    {
+        if( caller )
+            Root->WARNING( caller, "CACHE is empty" );
+
+        return false;
+    }
+
+    if( Cache.empty() )
+    {
+        if( caller )
+            Root->WARNING( caller, "action cache is empty" );
+
+        return false;
+    }
+
+    auto it = Cache.find( Values[val] );
+    if( it == Cache.end() )
+    {
+        if( caller )
+            Root->WARNING( caller, "action cache<%s> does not exits", Values[val].c_str() );
+
+        return false;
+    }
+    else if( it->second.empty() )
+    {
+        if( caller )
+            Root->WARNING( caller, "action cache<%s> is empty", Values[val].c_str() );
+
+        return false;
+    }
+
+    return true;
+}
+
 bool ReDefine::ScriptEditAction::GetINDEX( const char* caller, const uint32_t& val, const ScriptCode& code, uint32_t& out ) const
 {
     uint32_t tmp;
@@ -908,7 +953,7 @@ static ReDefine::ScriptEditReturn IfVariable( ReDefine::ScriptEditAction& action
 
 // script edit results
 
-// ? DoArgumentCache:INDEX,STRING
+// ? DoArgumentCache:INDEX,CACHE
 static ReDefine::ScriptEditReturn DoArgumentCache( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -969,7 +1014,7 @@ static ReDefine::ScriptEditReturn DoArgumentSet( ReDefine::ScriptEditAction& act
     return action.Success();
 }
 
-// ? DoArgumentSetCached:INDEX,STRING
+// ? DoArgumentSetCached:INDEX,CACHE
 static ReDefine::ScriptEditReturn DoArgumentSetCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsFunction( __FUNCTION__ ) )
@@ -982,11 +1027,8 @@ static ReDefine::ScriptEditReturn DoArgumentSetCached( ReDefine::ScriptEditActio
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
-    if( action.Cache.find( action.Values[1] ) == action.Cache.end() )
-    {
-        action.Root->WARNING( __FUNCTION__, "Cache<%s> does not exists", action.Values[1].c_str() );
+    if( !action.GetCACHE( __FUNCTION__, 1 ) )
         return action.Invalid();
-    }
 
     code.Arguments[idx].Raw = code.Arguments[idx].Arg = action.Cache[action.Values[1]];
     code.Arguments[idx].Type = "?";
@@ -1252,6 +1294,33 @@ static ReDefine::ScriptEditReturn DoArgumentsPushBack( ReDefine::ScriptEditActio
     return action.Success();
 }
 
+// ? DoArgumentsPushBackCached:CACHE
+// ? DoArgumentsPushBackCached:CACHE,TYPE
+// > DoArgumentsPushBack
+static ReDefine::ScriptEditReturn DoArgumentsPushBackCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    if( !action.GetCACHE( __FUNCTION__, 0 ) )
+        return action.Invalid();
+
+    std::string type = "?";
+
+    if( action.IsValues( nullptr, 2 ) )
+    {
+        if( !action.GetTYPE( __FUNCTION__, 1, true ) )
+            return action.Invalid();
+
+        type = action.Values[1];
+    }
+
+    return action.CallEditDo( code, "DoArgumentsPushBack", { action.Cache[action.Values[0]], type } );
+}
+
 // ? DoArgumentsPushFront:STRING,
 // ? DoArgumentsPushFront:STRING,TYPE
 // ! Adds script function argument as first in list.
@@ -1280,6 +1349,33 @@ static ReDefine::ScriptEditReturn DoArgumentsPushFront( ReDefine::ScriptEditActi
     code.Arguments.insert( code.Arguments.begin(), argument );
 
     return action.Success();
+}
+
+// ? DoArgumentsPushFrontCached:CACHE
+// ? DoArgumentsPushFrontCached:CACHE,TYPE
+// > DoArgumentsPushFront
+static ReDefine::ScriptEditReturn DoArgumentsPushFrontCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    if( !action.GetCACHE( __FUNCTION__, 0 ) )
+        return action.Invalid();
+
+    std::string type = "?";
+
+    if( action.IsValues( nullptr, 2 ) )
+    {
+        if( !action.GetTYPE( __FUNCTION__, 1, true ) )
+            return action.Invalid();
+
+        type = action.Values[1];
+    }
+
+    return action.CallEditDo( code, "DoArgumentsPushFront", { action.Cache[action.Values[0]], type } );
 }
 
 // ? DoArgumentsResize:UINT
@@ -1586,7 +1682,9 @@ void ReDefine::InitScript()
     EditDo["DoArgumentsMoveBack"] = &DoArgumentsMoveBack;
     EditDo["DoArgumentsMoveFront"] = &DoArgumentsMoveFront;
     EditDo["DoArgumentsPushBack"] = &DoArgumentsPushBack;
+    EditDo["DoArgumentsPushBackCached"] = &DoArgumentsPushBackCached;
     EditDo["DoArgumentsPushFront"] = &DoArgumentsPushFront;
+    EditDo["DoArgumentsPushFrontCached"] = &DoArgumentsPushFrontCached;
     EditDo["DoArgumentsResize"] = &DoArgumentsResize;
     EditDo["DoFileCount"] = &DoFileCount;
     EditDo["DoFunction"] = &DoFunction;

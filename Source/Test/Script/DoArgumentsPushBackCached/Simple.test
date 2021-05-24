@@ -1,0 +1,5 @@
+SCRIPT [Script:Test]
+SCRIPT Run      = RunAfter IfFunction DoArgumentResult:0,Test,External DoArgumentSetCached:0,arg0 DoArgumentsPushBackCached:arg1
+SCRIPT External = RunOnDemand DoArgumentCache:0,arg0 DoArgumentCache:1,arg1
+ORIGIN f(f(a, b))
+EXPECT f(a, b)

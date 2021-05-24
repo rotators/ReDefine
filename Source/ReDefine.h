@@ -296,6 +296,7 @@ public:
         bool IsOnDemand( const char* caller ) const;
         bool IsValues( const char* caller, const uint32_t& count ) const;
 
+        bool GetCACHE( const char* caller, const uint32_t& val ) const;
         bool GetINDEX( const char* caller, const uint32_t& val, const ReDefine::ScriptCode& code, uint32_t& out ) const;
         bool GetTYPE( const char* caller, const uint32_t& val, bool allowUnknown = false ) const;
         bool GetUINT( const char* caller, const uint32_t& val, uint32_t& out, const std::string& name = "UINT" ) const;
