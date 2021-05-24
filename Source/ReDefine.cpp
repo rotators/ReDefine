@@ -378,6 +378,14 @@ void ReDefine::ProcessHeaders( const std::string& path )
             LOG( "Added postprocess action ... %s", after.Name.c_str() );
         }
     }
+
+    for( const auto& it : EditOnDemand )
+    {
+        for( const ScriptEdit& demand : it.second )
+        {
+            LOG( "Added on-demand action ... %s", demand.Name.c_str() );
+        }
+    }
 }
 
 void ReDefine::ProcessScripts( const std::string& path, const bool readOnly /* = false */ )

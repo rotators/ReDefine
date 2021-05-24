@@ -244,15 +244,15 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
         if( !IsOperator( variable.Operator ) )
         {
             /*
-            if( TextGetLower( variable.Operator ).starts_with( "bw" ) )
-            {
-                DEBUG(__FUNCTION__, "Unknown bitwise operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
-            }
-            else
-            {
-                DEBUG(__FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str());
-            }
-            */
+               if( TextGetLower( variable.Operator ).starts_with( "bw" ) )
+               {
+                DEBUG( __FUNCTION__, "Unknown bitwise operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str() );
+               }
+               else
+               {
+                DEBUG( __FUNCTION__, "Unknown operator<%s> : %s %s %s", variable.Operator.c_str(), variable.Name.c_str(), variable.Operator.c_str(), variable.OperatorArgument.c_str() );
+               }
+             */
             continue;
         }
 

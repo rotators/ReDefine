@@ -208,6 +208,24 @@ public:
             bool                     Negate; // used by conditions only
         };
 
+        struct External
+        {
+            const std::string Name;
+
+            const bool        RunConditions;
+            const bool        RunResults;
+
+            ScriptEditReturn  ReturnConditions;
+            ScriptEditReturn  ReturnResults;
+
+            External();
+            External( const std::string& name, bool conditions, bool results );
+
+            bool InUse();
+        };
+
+        static External     ExternalDummy; // default argument for ReDefine::ProcessScriptEdit()
+
         bool                Debug;
         std::string         Name;
 
@@ -225,7 +243,7 @@ public:
         {
             BEFORE  = 0x01, // set when processing RunBefore edits
             AFTER   = 0x02, // set when processing RunAfter edits
-            ______  = 0x04,
+            DEMAND  = 0x04,
 
             RESTART = 0x10  // set by DoRestart; forces restart of line processing keeping changes already made to code
         };
@@ -270,6 +288,7 @@ public:
 
         bool IsBefore( const char* caller ) const;
         bool IsAfter( const char* caller ) const;
+        bool IsOnDemand( const char* caller ) const;
         bool IsValues( const char* caller, const unsigned int& count ) const;
 
         bool GetINDEX( const char* caller, const unsigned int& val, const ReDefine::ScriptCode& code, unsigned int& out ) const;
@@ -390,7 +409,7 @@ public:
     std::map<std::string, ScriptEditDo>             EditDo;
     std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
     std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
-    std::map<unsigned int, std::vector<ScriptEdit>> Edit______;
+    std::map<unsigned int, std::vector<ScriptEdit>> EditOnDemand;
 
     ScriptDebugChanges                              DebugChanges;
     bool                                            UseParser;
@@ -408,7 +427,7 @@ public:
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
     void ProcessScriptReplacements( ScriptCode& code, bool refresh = false );
-    void ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code, bool& restart );
+    void ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code, bool& restart, ScriptEdit::External& external = ScriptEdit::ExternalDummy );
 
     //
     // Text

@@ -1,0 +1,3 @@
+SCRIPT Run = RunBefore RunOnDemand IfFunction DoVariable
+ORIGIN f()
+EXPECT f()

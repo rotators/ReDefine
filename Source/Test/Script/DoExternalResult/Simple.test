@@ -1,0 +1,5 @@
+SCRIPT [Script:Test]
+SCRIPT Run      = RunAfter IfFunction DoArgumentResult:0,Test,External
+SCRIPT External = RunOnDemand DoVariable:y
+ORIGIN outer(inner(x))
+EXPECT outer(y)

@@ -10,12 +10,37 @@
 # include "Parser.h"
 #endif
 
+ReDefine::ScriptEdit::External ReDefine::ScriptEdit::ExternalDummy;
+
 //
 
 ReDefine::ScriptEdit::ScriptEdit() :
     Debug( false ),
     Name( "" )
 {}
+
+//
+
+ReDefine::ScriptEdit::External::External() :
+    Name( "" ),
+    RunConditions( false ),
+    RunResults( false ),
+    ReturnConditions( ScriptEditReturn::Invalid ),
+    ReturnResults( ScriptEditReturn::Invalid )
+{}
+
+ReDefine::ScriptEdit::External::External( const std::string& name, bool conditions, bool results ) :
+    Name( name ),
+    RunConditions( conditions ),
+    RunResults( results ),
+    ReturnConditions( ScriptEditReturn::Invalid ),
+    ReturnResults( ScriptEditReturn::Invalid )
+{}
+
+bool ReDefine::ScriptEdit::External::InUse()
+{
+    return !Name.empty() && (RunConditions || RunResults);
+}
 
 //
 
@@ -62,6 +87,19 @@ bool ReDefine::ScriptEditAction::IsAfter( const char* caller ) const
     {
         if( caller )
             Root->WARNING( caller, "action can be used only in RunAfter edits" );
+
+        return false;
+    }
+
+    return true;
+}
+
+bool ReDefine::ScriptEditAction::IsOnDemand( const char* caller ) const
+{
+    if( !IsFlag( ScriptEditAction::Flag::DEMAND ) )
+    {
+        if( caller )
+            Root->WARNING( caller, "action can be used only in RunOnDemand edits" );
 
         return false;
     }
@@ -221,7 +259,6 @@ ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditDo( ScriptCode& c
 
     ScriptEditAction data( Root, action, Flags );
 
-    Root->DEBUG( nullptr, "CallEditDo(%s%s%s)", data.Name.c_str(), data.Values.size() ? ", " : "", Root->TextGetJoined( data.Values, ", " ).c_str() );
     return data.CallEditDo( code );
 }
 
@@ -468,7 +505,109 @@ void ReDefine::ScriptCode::ChangeLog()
     Parent->Status.Current = previous;
 }
 
+// script edit helpers
+
+static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code, bool condition )
+{
+    if( !code.IsFunction( caller ) )
+        return action.Invalid();
+
+    if( !action.IsValues( caller, 3 ) )
+        return action.Invalid();
+
+    unsigned int idx = unsigned int(-1);
+
+    if( !action.GetINDEX( caller, 0, code, idx ) )
+        return action.Invalid();
+
+    if( action.Values[1].empty() || action.Values[2].empty() )
+    {
+        action.Root->DEBUG( caller, "External condition/result name not set" );
+        return action.Invalid();
+    }
+
+    ReDefine::ScriptCode              codeExtracted = code;
+
+    std::vector<ReDefine::ScriptCode> extracted;
+    action.Root->TextGetFunctions( code.Arguments[idx].Raw, extracted );
+    action.Root->TextGetVariables( code.Arguments[idx].Raw, extracted );
+
+    if( extracted.empty() )
+    {
+        // TODO retry with ^[A-Za-z0-9_]$
+        // action.Root->DEBUG( caller, "Extracting argument<%u> failed", idx );
+        return action.Failure();
+    }
+
+    extracted.front().Parent = code.Parent;
+    extracted.front().File = code.File;
+
+    if( extracted.size() != 1 )
+        action.Root->DEBUG( caller, "Extracted argument : ScriptCode size = %u, using first only = %s", extracted.size(), extracted.front().GetFullString().c_str() );
+
+    codeExtracted = extracted.front();
+
+    bool                           restart = false;
+    ReDefine::ScriptEdit::External external( action.Values[1] + "->" + action.Values[2], condition, !condition );
+
+    code.Changes.push_back( std::make_pair<std::string, std::string>( "script code (extracted)", codeExtracted.GetFullString() ) );
+    action.Root->ProcessScriptEdit( ReDefine::ScriptEditAction::Flag::DEMAND, action.Root->EditOnDemand, codeExtracted, restart, external );
+
+    for( const auto& change : codeExtracted.Changes )
+    {
+        code.Changes.push_back( change );
+    }
+
+    if( condition )
+    {
+        /*
+           if(action.Root->TextGetPacked(code.GetFullString()) != action.Root->TextGetPacked(codeExtracted.GetFullString()))
+           {
+            // TODO? unify condition/result functions signatures and validate by ProcessEditScript()
+            action.Root->WARNING(caller, "External condition attepted to modify script code, cannot continue");
+            action.Root->WARNING(caller, "<%s> != <%s>", action.Root->TextGetPacked(code.GetFullString()).c_str(), action.Root->TextGetPacked(codeExtracted.GetFullString()).c_str());
+                return action.Invalid();
+           }
+         */
+
+        if( restart )
+        {
+            action.Root->WARNING( caller, "ProcessScriptEdit() unexpected restart=true, cannot continue" );
+            return action.Invalid();
+        }
+    }
+
+    if( condition && external.ReturnConditions != ReDefine::ScriptEditReturn::Success )
+        return external.ReturnConditions;
+    else if( !condition && external.ReturnResults != ReDefine::ScriptEditReturn::Success )
+        return external.ReturnResults;
+
+    if( !condition )
+    {
+        code.Arguments[idx].Raw = codeExtracted.Full;
+        code.Arguments[idx].Arg = codeExtracted.GetFullString();
+
+        if( codeExtracted.IsFlag( ReDefine::ScriptCode::Flag::REFRESH ) )
+            code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
+
+        if( restart )
+            action.SetFlag( ReDefine::ScriptEditAction::Flag::RESTART );
+    }
+
+    if( condition )
+        return external.ReturnConditions;
+    else
+        return external.ReturnResults;
+}
+
 // script edit conditions
+
+// ? IfArgumentCondition:INDEX,STRING,STRING
+
+static ReDefine::ScriptEditReturn IfArgumentCondition( ReDefine::ScriptEditAction& action, const ReDefine::ScriptCode& code )
+{
+    return RunExternal( __FUNCTION__, action, const_cast<ReDefine::ScriptCode&>(code), true );
+}
 
 // ? IfArgumentIs:INDEX,DEFINE
 // ? IfArgumentIs:INDEX,DEFINE,TYPE
@@ -615,7 +754,8 @@ static ReDefine::ScriptEditReturn IfFileName( ReDefine::ScriptEditAction& action
 // ? IfFunction
 // ? IfFunction:STRING
 // ? IfFunction:STRING_1,...,STRING_N
-// ! Checks if script code is a function. One or more names can be passed to simulate `or` / `||` check.
+// ! Checks if script code is a function.
+// ! When used with argument(s), checks if script code is a function with given name. One or more names can be passed to simulate `or` / `||` check.
 // > IfName
 static ReDefine::ScriptEditReturn IfFunction( ReDefine::ScriptEditAction& action, const ReDefine::ScriptCode& code )
 {
@@ -754,6 +894,13 @@ static ReDefine::ScriptEditReturn DoArgumentCount( ReDefine::ScriptEditAction& a
     action.Root->Status.Process.Counters[action.Values[1]][code.Arguments[idx].Arg]++;
 
     return action.Success();
+}
+
+// ? DoArgumentResult:INDEX,STRING,STRING
+
+static ReDefine::ScriptEditReturn DoArgumentResult( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    return RunExternal( __FUNCTION__, action, code, false );
 }
 
 // ? DoArgumentSet:INDEX,STRING
@@ -1334,6 +1481,7 @@ static ReDefine::ScriptEditReturn DoVariable( ReDefine::ScriptEditAction& action
 void ReDefine::InitScript()
 {
     // must start with "If"
+    EditIf["IfArgumentCondition"] = &IfArgumentCondition;
     EditIf["IfArgumentIs"] = &IfArgumentIs;
 //  EditIf["IfArgumentNotValue"] = &IfArgumentNotValue;
     EditIf["IfArgumentValue"] = &IfArgumentValue;
@@ -1354,6 +1502,7 @@ void ReDefine::InitScript()
     // must start with "Do"
     EditDo["DoArgumentCount"] = &DoArgumentCount;
     EditDo["DoArgumentLookup"] = &DoArgumentLookup;
+    EditDo["DoArgumentResult"] = &DoArgumentResult;
     EditDo["DoArgumentSet"] = &DoArgumentSet;
     EditDo["DoArgumentSetPrefix"] = &DoArgumentSetPrefix;
     EditDo["DoArgumentSetSuffix"] = &DoArgumentSetSuffix;
@@ -1389,6 +1538,7 @@ void ReDefine::FinishScript( bool finishCallbacks /* = true */ )
 
     EditBefore.clear();
     EditAfter.clear();
+    EditOnDemand.clear();
 
     DebugChanges = ScriptDebugChanges::NONE;
     UseParser = false;
@@ -1430,7 +1580,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                 ScriptEdit edit;
                 edit.Name = category + name;
 
-                bool         ignore = false, before = false, after = false;
+                bool         ignore = false, before = false, after = false, demand = false;
                 unsigned int priority = 100;
 
                 for( const auto& action : Config->GetStrVec( section, name ) )
@@ -1473,6 +1623,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         before = true;
                     else if( arg[0] == "RunAfter" )
                         after = true;
+                    else if( arg[0] == "RunOnDemand" )
+                        demand = true;
                     else if( arg[0].length() >= 3 && arg[0].substr( 0, 2 ) == "If" )
                     {
                         ScriptEdit::Action condition;
@@ -1506,10 +1658,16 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                         break;
                     }
 
-                    if( (arg[0] == "RunBefore" || arg[0] == "RunAfter") && !vals.empty() && !vals[0].empty() )
+                    if( (arg[0] == "RunBefore" || arg[0] == "RunAfter" || arg[0] == "RunOnDemand") && !vals.empty() && !vals[0].empty() )
                     {
                         int tmpriority;
-                        if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
+                        if( arg[0] == "RunOnDemand" )
+                        {
+                            WARNING( __FUNCTION__, "script edit<%s> ignored : edits running on demand cannot set priority", name.c_str() );
+                            ignore = true;
+                            break;
+                        }
+                        else if( !TextGetInt( vals[0], tmpriority ) || tmpriority < 0 )
                         {
                             WARNING( __FUNCTION__, "script edit<%s> ignored : invalid priority<%s>", name.c_str(), vals[0].c_str() );
                             ignore = true;
@@ -1528,21 +1686,33 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
                 // validation
 
-                if( !before && !after )
+                if( !before && !after && !demand )
                 {
-                    WARNING( nullptr, "script edit<%s> ignored : at least one of 'RunBefore' or 'RunAfter' must be set", edit.Name.c_str() );
+                    WARNING( nullptr, "script edit<%s> ignored : at least one of 'RunBefore' / 'RunAfter' / 'RunOnDemand' must be set", edit.Name.c_str() );
                     ignore = true;
                 }
 
                 if( (before || after) && edit.Conditions.empty() )
                 {
-                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore'/'RunAfter' actions require at least one condition", edit.Name.c_str() );
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore' / 'RunAfter' edits require at least one condition", edit.Name.c_str() );
                     ignore = true;
                 }
 
                 if( (before || after) && edit.Results.empty() )
                 {
-                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore'/'RunAfter' actions require at least one result", edit.Name.c_str() );
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunBefore' / 'RunAfter' edits require at least one result", edit.Name.c_str() );
+                    ignore = true;
+                }
+
+                if( demand && edit.Conditions.empty() && edit.Results.empty() )
+                {
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunOnDemand' edits require at least one result or condition", edit.Name.c_str() );
+                    ignore = true;
+                }
+
+                if( (before || after) && demand )
+                {
+                    WARNING( nullptr, "script edit<%s> ignored : 'RunOnDemand' edits cannot be used together with 'RunBefore' or 'RunAfter'", edit.Name.c_str() );
                     ignore = true;
                 }
 
@@ -1553,6 +1723,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     EditBefore[priority].push_back( edit );
                 if( after )
                     EditAfter[priority].push_back( edit );
+                if( demand )
+                    EditOnDemand[priority].push_back( edit );
             }
         }
     }
@@ -1984,18 +2156,21 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
     }
 }
 
-void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld, bool& restart )
+void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld, bool& restart, ScriptEdit::External& external /* = ScriptEdit::ExternalDummy */ )
 {
     // editing must always works on backup to prevent massive screwup
     // original code will be updated only if there's no problems with *any* condition/result function
     // that, plus (intentional) massive spam in warning log should be enough to get user's attention (yeah, i don't belive that either... :P)
     ScriptCode        code = codeOld;
-    const std::string timing = initFlag == ScriptEditAction::Flag::BEFORE ? "Before" : initFlag == ScriptEditAction::Flag::AFTER ? "After" : initFlag == ScriptEditAction::Flag::______ ? "______" : "";
+    const std::string timing = initFlag == ScriptEditAction::Flag::BEFORE ? "Before" : initFlag == ScriptEditAction::Flag::AFTER ? "After" : initFlag == ScriptEditAction::Flag::DEMAND ? "OnDemand" : "";
 
     for( const auto& it : edits )
     {
         for( const ScriptEdit& edit : it.second )
         {
+            if( external.InUse() && edit.Name != external.Name )
+                continue;
+
             const ScriptDebugChanges debug = edit.Debug ? ScriptDebugChanges::ALL : DebugChanges;
             ScriptEditReturn         editReturn = ScriptEditReturn::Invalid;
             ScriptEditAction::Flag   editFlag = initFlag;
@@ -2008,6 +2183,9 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
             // all conditions needs to be satisfied
             for( const ScriptEdit::Action& condition : edit.Conditions )
             {
+                if( external.InUse() && !external.RunConditions )
+                    break;
+
                 ScriptEditAction editAction( this, condition, editFlag );
                 editReturn = editAction.CallEditIf( code );
 
@@ -2020,11 +2198,19 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
 
                     if( condition.Negate )
                         run = !run;
+
+                    // if( !external.Name.empty() )
+                    //     DEBUG( __FUNCTION__, "Run external condition %s %s result = %s", edit.Name.c_str(), condition.Name.c_str(), run ? "Success" : "Failure" );
+                    external.ReturnConditions = run ? ScriptEditReturn::Success : ScriptEditReturn::Failure;
                 }
                 else
                 {
                     WARNING( nullptr, "script edit<%s> aborted : condition<%s> invalid", edit.Name.c_str(), condition.Name.c_str() );
                     run = false;
+
+                    if( !external.Name.empty() )
+                        DEBUG( __FUNCTION__, "Run external condition %s %s result = Invalid", edit.Name.c_str(), condition.Name.c_str() );
+                    external.ReturnConditions = ScriptEditReturn::Invalid;
                 }
 
                 if( debug > ScriptDebugChanges::NONE && ( (first && run) || !first ) )
@@ -2036,7 +2222,11 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
                 first = false;
             }
 
-            if( !run )
+            if( external.InUse() && !external.RunConditions )
+            {
+                // Ignore default condition results when running results only
+            }
+            else if( !run )
             {
                 if( debug == ScriptDebugChanges::ONLY_IF_CHANGED )
                     code.Changes.resize( changesSize );
@@ -2047,6 +2237,9 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
             // you are Result, you must Do
             for( const ScriptEdit::Action& result : edit.Results )
             {
+                if( external.InUse() && !external.RunResults )
+                    continue;
+
                 if( debug > ScriptDebugChanges::NONE )
                     log = " " + result.Name + (!result.Values.empty() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
@@ -2062,9 +2255,15 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
                         WARNING( nullptr, "internal error : result reported failure" );
                         run = false;
                     }
+
+                    external.ReturnResults = run ? ScriptEditReturn::Success : ScriptEditReturn::Invalid;
                 }
                 else
+                {
                     run = false;
+
+                    external.ReturnResults = ScriptEditReturn::Invalid;
+                }
 
                 if( !run )
                 {
