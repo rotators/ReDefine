@@ -206,21 +206,24 @@ public:
         {
             std::string              Name;
             std::vector<std::string> Values;
-            bool                     Negate; // used by conditions only
+            bool                     Negate = false; // used by conditions only
         };
 
         struct External
         {
-            const std::string Name;
+            const std::string                   Name;
 
-            const bool        RunConditions;
-            const bool        RunResults;
+            const bool                          RunConditions;
+            const bool                          RunResults;
 
-            ScriptEditReturn  ReturnConditions;
-            ScriptEditReturn  ReturnResults;
+            ScriptEditReturn                    ReturnConditions;
+            ScriptEditReturn                    ReturnResults;
+
+            std::map<std::string, std::string>& Cache;
+
 
             External();
-            External( const std::string& name, bool conditions, bool results );
+            External( const std::string& name, bool conditions, bool results, std::map<std::string, std::string>& cache );
 
             bool InUse();
         };
@@ -249,13 +252,14 @@ public:
             RESTART = 0x10  // set by DoRestart; forces restart of line processing keeping changes already made to code
         };
 
-        const std::string&              Name;
-        const std::vector<std::string>& Values;
+        const std::string&                  Name;
+        const std::vector<std::string>&     Values;
 
-        ReDefine*                       Root;
-        Flag&                           Flags;
+        ReDefine*                           Root;
+        Flag&                               Flags;
+        std::map<std::string, std::string>& Cache;
 
-        ScriptEditAction( void*  root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags  );
+        ScriptEditAction( void*  root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags, std::map<std::string, std::string>& cache );
 
         //
 

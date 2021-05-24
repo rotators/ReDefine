@@ -1,0 +1,5 @@
+SCRIPT [Script:Test]
+SCRIPT Run      = RunAfter IfFunction IfArgumentCondition:0,Test,External DoArgumentResult:0,Test,External DoArgumentSetCached:0,arg
+SCRIPT External = RunOnDemand IfFunction:c DoArgumentCache:0,arg
+ORIGIN a(c(b));
+EXPECT a(b);

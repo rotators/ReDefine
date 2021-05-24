@@ -1,0 +1,29 @@
+SCRIPT [Script:Test]
+SCRIPT Run        = RunAfter    IfFunction:a IfArgumentCondition:0,Test,External.B DoArgumentResult:0,Test,External.B DoArgumentSetCached:0,arg
+SCRIPT External.B = RunOnDemand IfFunction:b IfArgumentCondition:0,Test,External.C DoArgumentResult:0,Test,External.C
+SCRIPT External.C = RunOnDemand IfFunction:c IfArgumentCondition:0,Test,External.D DoArgumentResult:0,Test,External.D
+SCRIPT External.D = RunOnDemand IfFunction:d IfArgumentCondition:0,Test,External.E DoArgumentResult:0,Test,External.E
+SCRIPT External.E = RunOnDemand IfFunction:e IfArgumentCondition:0,Test,External.F DoArgumentResult:0,Test,External.F
+SCRIPT External.F = RunOnDemand IfFunction:f IfArgumentCondition:0,Test,External.G DoArgumentResult:0,Test,External.G
+SCRIPT External.G = RunOnDemand IfFunction:g IfArgumentCondition:0,Test,External.H DoArgumentResult:0,Test,External.H
+SCRIPT External.H = RunOnDemand IfFunction:h IfArgumentCondition:0,Test,External.I DoArgumentResult:0,Test,External.I
+SCRIPT External.I = RunOnDemand IfFunction:i IfArgumentCondition:0,Test,External.J DoArgumentResult:0,Test,External.J
+SCRIPT External.J = RunOnDemand IfFunction:j IfArgumentCondition:0,Test,External.K DoArgumentResult:0,Test,External.K
+SCRIPT External.K = RunOnDemand IfFunction:k IfArgumentCondition:0,Test,External.L DoArgumentResult:0,Test,External.L
+SCRIPT External.L = RunOnDemand IfFunction:l IfArgumentCondition:0,Test,External.M DoArgumentResult:0,Test,External.M
+SCRIPT External.M = RunOnDemand IfFunction:m IfArgumentCondition:0,Test,External.N DoArgumentResult:0,Test,External.N
+SCRIPT External.N = RunOnDemand IfFunction:n IfArgumentCondition:0,Test,External.O DoArgumentResult:0,Test,External.O
+SCRIPT External.O = RunOnDemand IfFunction:o IfArgumentCondition:0,Test,External.P DoArgumentResult:0,Test,External.P
+SCRIPT External.P = RunOnDemand IfFunction:p IfArgumentCondition:0,Test,External.Q DoArgumentResult:0,Test,External.Q
+SCRIPT External.Q = RunOnDemand IfFunction:q IfArgumentCondition:0,Test,External.R DoArgumentResult:0,Test,External.R
+SCRIPT External.R = RunOnDemand IfFunction:r IfArgumentCondition:0,Test,External.S DoArgumentResult:0,Test,External.S
+SCRIPT External.S = RunOnDemand IfFunction:s IfArgumentCondition:0,Test,External.T DoArgumentResult:0,Test,External.T
+SCRIPT External.T = RunOnDemand IfFunction:t IfArgumentCondition:0,Test,External.U DoArgumentResult:0,Test,External.U
+SCRIPT External.U = RunOnDemand IfFunction:u IfArgumentCondition:0,Test,External.V DoArgumentResult:0,Test,External.V
+SCRIPT External.V = RunOnDemand IfFunction:v IfArgumentCondition:0,Test,External.W DoArgumentResult:0,Test,External.W
+SCRIPT External.W = RunOnDemand IfFunction:w IfArgumentCondition:0,Test,External.X DoArgumentResult:0,Test,External.X
+SCRIPT External.X = RunOnDemand IfFunction:x IfArgumentCondition:0,Test,External.Y DoArgumentResult:0,Test,External.Y
+SCRIPT External.Y = RunOnDemand IfFunction:y IfArgumentValue:1,b DoLogCurrentLine DoArgumentCache:1,arg
+
+ORIGIN a(b(c(d(e(f(g(h(i(j(k(l(m(n(o(p(q(r(s(t(u(v(w(x(y(z, b, z)))))))))))))))))))))))));
+EXPECT a(b);

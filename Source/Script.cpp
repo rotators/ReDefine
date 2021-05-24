@@ -21,20 +21,24 @@ ReDefine::ScriptEdit::ScriptEdit() :
 
 //
 
+static std::map<std::string, std::string> DummyCache;
+
 ReDefine::ScriptEdit::External::External() :
     Name( "" ),
     RunConditions( false ),
     RunResults( false ),
     ReturnConditions( ScriptEditReturn::Invalid ),
-    ReturnResults( ScriptEditReturn::Invalid )
+    ReturnResults( ScriptEditReturn::Invalid ),
+    Cache( DummyCache )
 {}
 
-ReDefine::ScriptEdit::External::External( const std::string& name, bool conditions, bool results ) :
+ReDefine::ScriptEdit::External::External( const std::string& name, bool conditions, bool results, std::map<std::string, std::string>& cache ) :
     Name( name ),
     RunConditions( conditions ),
     RunResults( results ),
     ReturnConditions( ScriptEditReturn::Invalid ),
-    ReturnResults( ScriptEditReturn::Invalid )
+    ReturnResults( ScriptEditReturn::Invalid ),
+    Cache( cache )
 {}
 
 bool ReDefine::ScriptEdit::External::InUse()
@@ -44,11 +48,12 @@ bool ReDefine::ScriptEdit::External::InUse()
 
 //
 
-ReDefine::ScriptEditAction::ScriptEditAction( void* root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags ) :
+ReDefine::ScriptEditAction::ScriptEditAction( void* root, const ScriptEdit::Action& action, ScriptEditAction::Flag& flags, std::map<std::string, std::string>& cache ) :
     Name( action.Name ),
     Values( action.Values ),
     Root( static_cast<ReDefine*>(root) ),
-    Flags( flags )
+    Flags( flags ),
+    Cache( cache )
 {}
 
 typedef std::underlying_type<ReDefine::ScriptEditAction::Flag>::type ScriptEditActionFlagType;
@@ -234,7 +239,7 @@ ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditIf( const ScriptC
     action.Name = name;
     action.Values = values;
 
-    ScriptEditAction data( Root, action, Flags );
+    ScriptEditAction data( Root, action, Flags, Cache );
 
     return data.CallEditIf( code );
 }
@@ -257,7 +262,7 @@ ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditDo( ScriptCode& c
     action.Name = name;
     action.Values = values;
 
-    ScriptEditAction data( Root, action, Flags );
+    ScriptEditAction data( Root, action, Flags, Cache );
 
     return data.CallEditDo( code );
 }
@@ -532,25 +537,50 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
     action.Root->TextGetFunctions( code.Arguments[idx].Raw, extracted );
     action.Root->TextGetVariables( code.Arguments[idx].Raw, extracted );
 
+    // results returning INVALID after this point isn't very elegant solution,
+    // but it's better than editing wrong/unexpected ScriptCode;
+    // chances are that external condition(s) and results(s) will be placed in
+    // same action, making it less visible
+
     if( extracted.empty() )
     {
         // TODO retry with ^[A-Za-z0-9_]$
         // action.Root->DEBUG( caller, "Extracting argument<%u> failed", idx );
-        return action.Failure();
+        return condition ? action.Failure() : action.Invalid();
     }
 
-    extracted.front().Parent = code.Parent;
-    extracted.front().File = code.File;
+    for( ReDefine::ScriptCode& codeFind : extracted )
+    {
+        codeFind.Parent = code.Parent;
+        codeFind.File = code.File;
+    }
 
     if( extracted.size() != 1 )
-        action.Root->DEBUG( caller, "Extracted argument : ScriptCode size = %u, using first only = %s", extracted.size(), extracted.front().GetFullString().c_str() );
-
-    codeExtracted = extracted.front();
+    {
+        // validate extracted code candidates, and try to find proper ScriptCode
+        // prevents scenario when `f(A + b())` extracts only `b()`
+        bool found = false;
+        for( ReDefine::ScriptCode& codeFind : extracted )
+        {
+            if( codeFind.GetFullString() == code.Arguments[idx].Arg )
+            {
+                codeExtracted = codeFind;
+                found = true;
+                break;
+            }
+        }
+        if( !found )
+            return condition ? action.Failure() : action.Invalid();
+    }
+    else
+        codeExtracted = extracted.front();
 
     bool                           restart = false;
-    ReDefine::ScriptEdit::External external( action.Values[1] + "->" + action.Values[2], condition, !condition );
+    ReDefine::ScriptEdit::External external( action.Values[1] + "->" + action.Values[2], condition, !condition, action.Cache );
 
     code.Changes.push_back( std::make_pair<std::string, std::string>( "script code (extracted)", codeExtracted.GetFullString() ) );
+
+
     action.Root->ProcessScriptEdit( ReDefine::ScriptEditAction::Flag::DEMAND, action.Root->EditOnDemand, codeExtracted, restart, external );
 
     for( const auto& change : codeExtracted.Changes )
@@ -878,6 +908,23 @@ static ReDefine::ScriptEditReturn IfVariable( ReDefine::ScriptEditAction& action
 
 // script edit results
 
+// ? DoArgumentCache:INDEX,STRING
+static ReDefine::ScriptEditReturn DoArgumentCache( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 2 ) )
+        return action.Invalid();
+
+    uint32_t idx;
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
+        return action.Invalid();
+
+    action.Cache[action.Values[1]] = code.Arguments[idx].Arg;
+    return action.Success();
+}
+
 // ? DoArgumentCount:INDEX,STRING
 static ReDefine::ScriptEditReturn DoArgumentCount( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
@@ -918,6 +965,31 @@ static ReDefine::ScriptEditReturn DoArgumentSet( ReDefine::ScriptEditAction& act
 
     code.Arguments[idx].Raw = action.Root->TextGetReplaced( code.Arguments[idx].Raw, code.Arguments[idx].Arg, action.Values[1] );
     code.Arguments[idx].Arg = action.Values[1];
+
+    return action.Success();
+}
+
+// ? DoArgumentSetCached:INDEX,STRING
+static ReDefine::ScriptEditReturn DoArgumentSetCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 2 ) )
+        return action.Invalid();
+
+    uint32_t idx;
+    if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
+        return action.Invalid();
+
+    if( action.Cache.find( action.Values[1] ) == action.Cache.end() )
+    {
+        action.Root->WARNING( __FUNCTION__, "Cache<%s> does not exists", action.Values[1].c_str() );
+        return action.Invalid();
+    }
+
+    code.Arguments[idx].Raw = code.Arguments[idx].Arg = action.Cache[action.Values[1]];
+    code.Arguments[idx].Type = "?";
 
     return action.Success();
 }
@@ -1500,10 +1572,12 @@ void ReDefine::InitScript()
     EditIf["IfVariable"] = &IfVariable;
 
     // must start with "Do"
+    EditDo["DoArgumentCache"] = &DoArgumentCache;
     EditDo["DoArgumentCount"] = &DoArgumentCount;
     EditDo["DoArgumentLookup"] = &DoArgumentLookup;
     EditDo["DoArgumentResult"] = &DoArgumentResult;
     EditDo["DoArgumentSet"] = &DoArgumentSet;
+    EditDo["DoArgumentSetCached"] = &DoArgumentSetCached;
     EditDo["DoArgumentSetPrefix"] = &DoArgumentSetPrefix;
     EditDo["DoArgumentSetSuffix"] = &DoArgumentSetSuffix;
     EditDo["DoArgumentSetType"] = &DoArgumentSetType;
@@ -1624,7 +1698,10 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                     else if( arg[0] == "RunAfter" )
                         after = true;
                     else if( arg[0] == "RunOnDemand" )
+                    {
                         demand = true;
+                        priority = 0;
+                    }
                     else if( arg[0].length() >= 3 && arg[0].substr( 0, 2 ) == "If" )
                     {
                         ScriptEdit::Action condition;
@@ -2171,14 +2248,15 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
             if( external.InUse() && edit.Name != external.Name )
                 continue;
 
-            const ScriptDebugChanges debug = edit.Debug ? ScriptDebugChanges::ALL : DebugChanges;
-            ScriptEditReturn         editReturn = ScriptEditReturn::Invalid;
-            ScriptEditAction::Flag   editFlag = initFlag;
+            const ScriptDebugChanges           debug = edit.Debug ? ScriptDebugChanges::ALL : DebugChanges;
+            ScriptEditReturn                   editReturn = ScriptEditReturn::Invalid;
+            ScriptEditAction::Flag             editFlag = initFlag;
+            std::map<std::string, std::string> editCache;
 
-            bool                     run = false, first = true;
-            const std::string        change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
-            const size_t             changesSize = code.Changes.size();
-            std::string              log;
+            bool                               run = false, first = true;
+            const std::string                  change = "script edit<" +  timing + ":" + std::to_string( it.first ) + ":" + edit.Name + ">";
+            const size_t                       changesSize = code.Changes.size();
+            std::string                        log;
 
             // all conditions needs to be satisfied
             for( const ScriptEdit::Action& condition : edit.Conditions )
@@ -2186,7 +2264,7 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
                 if( external.InUse() && !external.RunConditions )
                     break;
 
-                ScriptEditAction editAction( this, condition, editFlag );
+                ScriptEditAction editAction( this, condition, editFlag, external.InUse() ? external.Cache : editCache );
                 editReturn = editAction.CallEditIf( code );
 
                 if( editReturn != ScriptEditReturn::Invalid )
@@ -2243,7 +2321,7 @@ void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const 
                 if( debug > ScriptDebugChanges::NONE )
                     log = " " + result.Name + (!result.Values.empty() ? (":" + TextGetJoined( result.Values, "," ) ) : "");
 
-                ScriptEditAction editAction( this, result, editFlag );
+                ScriptEditAction editAction( this, result, editFlag, external.InUse() ? external.Cache : editCache );
                 editReturn = editAction.CallEditDo( code );
 
                 if( editReturn != ScriptEditReturn::Invalid )
