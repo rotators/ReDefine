@@ -56,7 +56,7 @@ std::string ReDefine::TextGetFilename( const std::string& path, const std::strin
     return full.string();
 }
 
-bool ReDefine::TextGetInt( const std::string& text, int& result, const unsigned char& base /* = 10 */ )
+bool ReDefine::TextGetInt( const std::string& text, int& result, const uint8_t& base /* = 10 */ )
 {
     // https://stackoverflow.com/a/6154614
     const char* cstr = text.c_str();
@@ -162,10 +162,10 @@ std::string ReDefine::TextGetTrimmed( const std::string& text )
     // result.erase( find_if( result.rbegin(), result.rend(), std::not1( std::ptr_fun<int, int>( isspace ) ) ).base(), result.end() );
 
     // C++17+
-    result.erase( result.begin(), std::find_if( result.begin(), result.end(), [] ( unsigned char c ) {
+    result.erase( result.begin(), std::find_if( result.begin(), result.end(), [] ( char c ) {
         return !isspace( c );
     } ) );
-    result.erase( std::find_if( result.rbegin(), result.rend(), [] ( unsigned char c ) {
+    result.erase( std::find_if( result.rbegin(), result.rend(), [] ( char c ) {
         return !std::isspace( c );
     } ).base(), result.end() );
 
@@ -227,9 +227,9 @@ std::regex ReDefine::TextGetDefineStringRegex( std::string prefix, std::string s
 
 //
 
-unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
+uint32_t ReDefine::TextGetVariables( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
 {
-    unsigned int count = 0;
+    uint32_t count = 0;
 
     // variable <operator> <operator value>
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetVariables ), end = std::sregex_iterator(); it != end; ++it )
@@ -279,11 +279,11 @@ unsigned int ReDefine::TextGetVariables( const std::string& text, std::vector<Re
     return count;
 }
 
-unsigned int ReDefine::TextGetFunctions( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
+uint32_t ReDefine::TextGetFunctions( const std::string& text, std::vector<ReDefine::ScriptCode>& result )
 {
-    unsigned int count = 0;
+    uint32_t count = 0;
 
-    unsigned int funcIdx = 0;
+    uint32_t funcIdx = 0;
     for( auto it = std::sregex_iterator( text.begin(), text.end(), GetFunctions ), end = std::sregex_iterator(); it != end; ++it, funcIdx++ )
     {
         const std::string                 func = it->str( 1 );

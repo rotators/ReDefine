@@ -312,8 +312,8 @@ void ReDefine::ProcessHeaders( const std::string& path )
 
     for( const auto& func : FunctionsPrototypes )
     {
-        bool         valid = true;
-        unsigned int argument = 0;
+        bool     valid = true;
+        uint32_t argument = 0;
 
         if( !IsMysteryDefineType( func.second.ReturnType ) && !IsDefineType( func.second.ReturnType ) )
         {

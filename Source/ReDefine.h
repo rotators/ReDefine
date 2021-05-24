@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <regex>
@@ -20,15 +21,15 @@ public:
     // misc maps
     //
 
-    typedef std::map<std::string, std::map<int, std::string>>          DefinesMap;
-    typedef std::map<std::string, std::vector<std::string>>            StringVectorMap;
-    typedef std::map<std::string, std::map<std::string, unsigned int>> CountersMap;
+    typedef std::map<std::string, std::map<int32_t, std::string>>  DefinesMap;
+    typedef std::map<std::string, std::vector<std::string>>        StringVectorMap;
+    typedef std::map<std::string, std::map<std::string, uint32_t>> CountersMap;
 
     //
     // script edit actions
     //
 
-    enum class ScriptEditReturn : signed char
+    enum class ScriptEditReturn : int8_t
     {
         Invalid = -1,
         Failure,
@@ -53,13 +54,13 @@ public:
     {
         struct SCurrent
         {
-            std::string  File;
-            std::string  Line;
-            unsigned int LineNumber;
+            std::string File;
+            std::string Line;
+            uint32_t    LineNumber;
 
             SCurrent();
 
-            void         Clear();
+            void        Clear();
         }
         Current;
 
@@ -67,19 +68,19 @@ public:
         {
             // total number of files/lines processed
 
-            unsigned int Files;
-            unsigned int Lines;
+            uint32_t    Files;
+            uint32_t    Lines;
 
             // total number of files/lines changes or (if running in read-only mode) change candidates
 
-            unsigned int FilesChanges;
-            unsigned int LinesChanges;
+            uint32_t    FilesChanges;
+            uint32_t    LinesChanges;
 
-            CountersMap  Counters;  // <name, <value, count>>
+            CountersMap Counters;   // <name, <value, count>>
 
             SProcess();
 
-            void         Clear();
+            void        Clear();
         }
         Process;
 
@@ -239,7 +240,7 @@ public:
     // passed to conditions/results functions
     struct ScriptEditAction
     {
-        enum class Flag : unsigned char
+        enum class Flag : uint8_t
         {
             BEFORE  = 0x01, // set when processing RunBefore edits
             AFTER   = 0x02, // set when processing RunAfter edits
@@ -289,11 +290,11 @@ public:
         bool IsBefore( const char* caller ) const;
         bool IsAfter( const char* caller ) const;
         bool IsOnDemand( const char* caller ) const;
-        bool IsValues( const char* caller, const unsigned int& count ) const;
+        bool IsValues( const char* caller, const uint32_t& count ) const;
 
-        bool GetINDEX( const char* caller, const unsigned int& val, const ReDefine::ScriptCode& code, unsigned int& out ) const;
-        bool GetTYPE( const char* caller, const unsigned int& val, bool allowUnknown = false ) const;
-        bool GetUINT( const char* caller, const unsigned int& val, unsigned int& out, const std::string& name = "UINT" ) const;
+        bool GetINDEX( const char* caller, const uint32_t& val, const ReDefine::ScriptCode& code, uint32_t& out ) const;
+        bool GetTYPE( const char* caller, const uint32_t& val, bool allowUnknown = false ) const;
+        bool GetUINT( const char* caller, const uint32_t& val, uint32_t& out, const std::string& name = "UINT" ) const;
 
         // checks if condition action exists before calling it
         ScriptEditReturn CallEditIf( const ScriptCode& code );
@@ -311,7 +312,7 @@ public:
 
     struct ScriptCode
     {
-        enum class Format : unsigned char
+        enum class Format : uint8_t
         {
             UNCHANGED = 0, // func(preserve, original,formatting )
             WIDE,          // func( spaces, added, everywhere )
@@ -324,7 +325,7 @@ public:
         };
 
         // internal flags set for all ScriptCode
-        enum class Flag : unsigned char
+        enum class Flag : uint8_t
         {
             NONE     = 0,
 
@@ -395,7 +396,7 @@ public:
         void ChangeLog();
     };
 
-    enum class ScriptDebugChanges : unsigned char
+    enum class ScriptDebugChanges : uint8_t
     {
         NONE = 0,
         ONLY_IF_CHANGED,
@@ -405,17 +406,17 @@ public:
         MAX  = ALL
     };
 
-    std::map<std::string, ScriptEditIf>             EditIf;
-    std::map<std::string, ScriptEditDo>             EditDo;
-    std::map<unsigned int, std::vector<ScriptEdit>> EditBefore;
-    std::map<unsigned int, std::vector<ScriptEdit>> EditAfter;
-    std::map<unsigned int, std::vector<ScriptEdit>> EditOnDemand;
+    std::map<std::string, ScriptEditIf>         EditIf;
+    std::map<std::string, ScriptEditDo>         EditDo;
+    std::map<uint32_t, std::vector<ScriptEdit>> EditBefore;
+    std::map<uint32_t, std::vector<ScriptEdit>> EditAfter;
+    std::map<uint32_t, std::vector<ScriptEdit>> EditOnDemand;
 
-    ScriptDebugChanges                              DebugChanges;
-    bool                                            UseParser;
-    bool                                            ScriptFormattingForced;
-    bool                                            ScriptFormattingUnix;
-    ScriptCode::Format                              ScriptFormatting;
+    ScriptDebugChanges                          DebugChanges;
+    bool                                        UseParser;
+    bool                                        ScriptFormattingForced;
+    bool                                        ScriptFormattingUnix;
+    ScriptCode::Format                          ScriptFormatting;
 
     void InitScript();
     void FinishScript( bool finishCallbacks = true );
@@ -427,7 +428,7 @@ public:
 
     void ProcessScript( const std::string& path, const std::string& filename, const bool readOnly = false );
     void ProcessScriptReplacements( ScriptCode& code, bool refresh = false );
-    void ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ScriptEdit>>& edits, ScriptCode& code, bool& restart, ScriptEdit::External& external = ScriptEdit::ExternalDummy );
+    void ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<uint32_t, std::vector<ScriptEdit>>& edits, ScriptCode& code, bool& restart, ScriptEdit::External& external = ScriptEdit::ExternalDummy );
 
     //
     // Text
@@ -438,7 +439,7 @@ public:
     bool                     TextIsInt( const std::string& text );
     bool                     TextIsConflict( const std::string& text );
     std::string              TextGetFilename( const std::string& path, const std::string& filename );
-    bool                     TextGetInt( const std::string& text, int& result, const unsigned char& base = 10 );
+    bool                     TextGetInt( const std::string& text, int& result, const uint8_t& base = 10 );
     std::string              TextGetJoined( const std::vector<std::string>& text, const std::string& delimeter );
     std::string              TextGetLower( const std::string& text );
     std::string              TextGetPacked( const std::string& text );
@@ -448,13 +449,13 @@ public:
     std::string TextGetTrimmed( const std::string& text );
 
     bool       TextIsDefine( const std::string& text );
-    bool       TextGetDefineInt( const std::string& text, const std::regex& re, std::string& name, int& value );
+    bool       TextGetDefineInt( const std::string& text, const std::regex& re, std::string& name, int32_t& value );
     bool       TextGetDefineString( const std::string& text, const std::regex& re, std::string& name, std::string& value );
     std::regex TextGetDefineIntRegex( std::string prefix, std::string suffix, bool paren );
     std::regex TextGetDefineStringRegex( std::string prefix, std::string suffix, bool paren, const std::string& re );
 
-    unsigned int TextGetVariables( const std::string& text, std::vector<ScriptCode>& result );
-    unsigned int TextGetFunctions( const std::string& text, std::vector<ScriptCode>& result );
+    uint32_t TextGetVariables( const std::string& text, std::vector<ScriptCode>& result );
+    uint32_t TextGetFunctions( const std::string& text, std::vector<ScriptCode>& result );
 
     //
     // Variables

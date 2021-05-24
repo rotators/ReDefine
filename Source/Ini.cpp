@@ -52,7 +52,7 @@ using namespace std;
 #define SECTION_END      ']'
 #define KEY_ASSIGN       '='
 
-static vector<char> CommentChars;
+static vector<char> CommentChars{ ';', '#' };
 
 inline void TrimLeft( string& str )
 {
@@ -60,7 +60,7 @@ inline void TrimLeft( string& str )
     str.erase( str.begin(), find_if( str.begin(), str.end(), not1( ptr_fun<int, int>( isspace ) ) ) );
     //c++17+
     */
-    str.erase(str.begin(), find_if(str.begin(), str.end(), [](unsigned char c) {return !isspace(c); }));
+    str.erase(str.begin(), find_if(str.begin(), str.end(), [](char c) {return !std::isspace(c); }));
 }
 
 inline void TrimRight( string& str )
@@ -69,7 +69,7 @@ inline void TrimRight( string& str )
     str.erase( find_if( str.rbegin(), str.rend(), not1( ptr_fun<int, int>( isspace ) ) ).base(), str.end() );
     //c++17+
     */
-    str.erase(find_if(str.rbegin(), str.rend(), [](unsigned char c) { return !isspace(c); }).base(), str.end() );
+    str.erase(find_if(str.rbegin(), str.rend(), [](char c) { return !std::isspace(c); }).base(), str.end() );
 }
 
 inline void Cleanup( string& str )
@@ -83,6 +83,7 @@ inline void Cleanup( string& str )
 
 Ini::Ini() : KeepComments( false ), KeepSectionsRaw( false ), KeepKeysOrder( false )
 {
+    /*
     #if defined (FOCLASSIC_ENGINE) && defined (FO_WINDOWS) && defined (FO_MSVC) && _MSC_VER >= 1910 && !defined (__INTELLISENSE__)
     # pragma TODO("Use initializer list for CommentChars")
     #endif
@@ -91,6 +92,7 @@ Ini::Ini() : KeepComments( false ), KeepSectionsRaw( false ), KeepKeysOrder( fal
         CommentChars.push_back( '#' );
         CommentChars.push_back( ';' );
     }
+    */
 }
 
 Ini::~Ini()

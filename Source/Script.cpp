@@ -107,7 +107,7 @@ bool ReDefine::ScriptEditAction::IsOnDemand( const char* caller ) const
     return true;
 }
 
-bool ReDefine::ScriptEditAction::IsValues( const char* caller, const unsigned int& count ) const
+bool ReDefine::ScriptEditAction::IsValues( const char* caller, const uint32_t& count ) const
 {
     if( Values.size() < count )
     {
@@ -117,7 +117,7 @@ bool ReDefine::ScriptEditAction::IsValues( const char* caller, const unsigned in
         return false;
     }
 
-    for( unsigned int c = 0; c < count; c++ )
+    for( uint32_t c = 0; c < count; c++ )
     {
         if( Values[c].empty() )
         {
@@ -131,9 +131,9 @@ bool ReDefine::ScriptEditAction::IsValues( const char* caller, const unsigned in
     return true;
 }
 
-bool ReDefine::ScriptEditAction::GetINDEX( const char* caller, const unsigned int& val, const ScriptCode& code, unsigned int& out ) const
+bool ReDefine::ScriptEditAction::GetINDEX( const char* caller, const uint32_t& val, const ScriptCode& code, uint32_t& out ) const
 {
-    unsigned int tmp;
+    uint32_t tmp;
     if( !GetUINT( caller, val, tmp, "INDEX" ) )
         return false;
 
@@ -149,7 +149,7 @@ bool ReDefine::ScriptEditAction::GetINDEX( const char* caller, const unsigned in
     return true;
 }
 
-bool ReDefine::ScriptEditAction::GetTYPE( const char* caller, const unsigned int& val, bool allowUnknown /* = false */ ) const
+bool ReDefine::ScriptEditAction::GetTYPE( const char* caller, const uint32_t& val, bool allowUnknown /* = false */ ) const
 {
     if( val >= Values.size() )
     {
@@ -181,7 +181,7 @@ bool ReDefine::ScriptEditAction::GetTYPE( const char* caller, const unsigned int
     return true;
 }
 
-bool ReDefine::ScriptEditAction::GetUINT( const char* caller, const unsigned int& val, unsigned int& out, const std::string& name /* = "UINT" */ ) const
+bool ReDefine::ScriptEditAction::GetUINT( const char* caller, const uint32_t& val, uint32_t& out, const std::string& name /* = "UINT" */ ) const
 {
     if( val >= Values.size() )
     {
@@ -515,7 +515,7 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
     if( !action.IsValues( caller, 3 ) )
         return action.Invalid();
 
-    unsigned int idx = unsigned int(-1);
+    uint32_t idx = (uint32_t)(-1);
 
     if( !action.GetINDEX( caller, 0, code, idx ) )
         return action.Invalid();
@@ -620,7 +620,7 @@ static ReDefine::ScriptEditReturn IfArgumentIs( ReDefine::ScriptEditAction& acti
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -658,7 +658,7 @@ static ReDefine::ScriptEditReturn IfArgumentValue( ReDefine::ScriptEditAction& a
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -675,7 +675,7 @@ static ReDefine::ScriptEditReturn IfArgumentValue( ReDefine::ScriptEditAction& a
 //     if( !code.IsValues( __FUNCTION__, values, 2 ) )
 //         return false;
 //
-//     unsigned int idx;
+//     uint32_t idx;
 //     if( !code.GetINDEX( __FUNCTION__, values[0], idx ) )
 //         return false;
 //
@@ -692,11 +692,11 @@ static ReDefine::ScriptEditReturn IfArgumentsEqual( ReDefine::ScriptEditAction& 
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx1;
+    uint32_t idx1;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx1 ) )
         return action.Invalid();
 
-    unsigned int idx2;
+    uint32_t idx2;
     if( !action.GetINDEX( __FUNCTION__, 1, code, idx2 ) )
         return action.Invalid();
 
@@ -719,7 +719,7 @@ static ReDefine::ScriptEditReturn IfArgumentsSize( ReDefine::ScriptEditAction& a
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int size;
+    uint32_t size;
     if( !action.GetUINT( __FUNCTION__, 0, size ) )
         return action.Invalid();
 
@@ -887,7 +887,7 @@ static ReDefine::ScriptEditReturn DoArgumentCount( ReDefine::ScriptEditAction& a
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -912,7 +912,7 @@ static ReDefine::ScriptEditReturn DoArgumentSet( ReDefine::ScriptEditAction& act
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -932,7 +932,7 @@ static ReDefine::ScriptEditReturn DoArgumentSetPrefix( ReDefine::ScriptEditActio
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -949,7 +949,7 @@ static ReDefine::ScriptEditReturn DoArgumentSetSuffix( ReDefine::ScriptEditActio
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -968,7 +968,7 @@ static ReDefine::ScriptEditReturn DoArgumentSetType( ReDefine::ScriptEditAction&
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -987,7 +987,7 @@ static ReDefine::ScriptEditReturn DoArgumentLookup( ReDefine::ScriptEditAction& 
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -1066,7 +1066,7 @@ static ReDefine::ScriptEditReturn DoArgumentsErase( ReDefine::ScriptEditAction& 
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -1091,7 +1091,7 @@ static ReDefine::ScriptEditReturn DoArgumentsMoveBack( ReDefine::ScriptEditActio
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -1123,7 +1123,7 @@ static ReDefine::ScriptEditReturn DoArgumentsMoveFront( ReDefine::ScriptEditActi
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetINDEX( __FUNCTION__, 0, code, idx ) )
         return action.Invalid();
 
@@ -1221,7 +1221,7 @@ static ReDefine::ScriptEditReturn DoArgumentsResize( ReDefine::ScriptEditAction&
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    unsigned int size;
+    uint32_t size;
     if( !action.GetUINT( __FUNCTION__, 0, size ) )
         return action.Invalid();
 
@@ -1311,7 +1311,7 @@ static ReDefine::ScriptEditReturn DoFunctionAroundArgument( ReDefine::ScriptEdit
     if( !action.IsValues( __FUNCTION__, 2 ) )
         return action.Invalid();
 
-    unsigned int idx;
+    uint32_t idx;
     if( !action.GetUINT( __FUNCTION__, 1, idx ) )
         return action.Invalid();
 
@@ -1580,8 +1580,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                 ScriptEdit edit;
                 edit.Name = category + name;
 
-                bool         ignore = false, before = false, after = false, demand = false;
-                unsigned int priority = 100;
+                bool     ignore = false, before = false, after = false, demand = false;
+                uint32_t priority = 100;
 
                 for( const auto& action : Config->GetStrVec( section, name ) )
                 {
@@ -1854,18 +1854,18 @@ public:
 
     Status.Current.File = filename;
 
-    bool                 updateFile = false, conflict = false, restart = false, codeChanged = false;
-    std::string          content, newline = ScriptFormattingUnix ? "\n" : "\r\n";
-    unsigned int         changes = 0;
-    unsigned short       restartCount = 0;
-    const unsigned short restartLimit = 1000;
+    bool              updateFile = false, conflict = false, restart = false, codeChanged = false;
+    std::string       content, newline = ScriptFormattingUnix ? "\n" : "\r\n";
+    uint32_t          changes = 0;
+    uint16_t          restartCount = 0;
+    const uint16_t    restartLimit = 1000;
 
-    SStatus::SCurrent    previous;
+    SStatus::SCurrent previous;
 
-    ScriptFile*          file = new ScriptFile();
+    ScriptFile*       file = new ScriptFile();
 
-    std::smatch          match;
-    std::regex           define( "^[\\t\\ ]*\\#define[\\t\\ ]+([A-Za-z0-9_]+)(?:$|[\\t\\ ]+.*$)" );
+    std::smatch       match;
+    std::regex        define( "^[\\t\\ ]*\\#define[\\t\\ ]+([A-Za-z0-9_]+)(?:$|[\\t\\ ]+.*$)" );
 
     for( auto& line : lines )
     {
@@ -2156,7 +2156,7 @@ void ReDefine::ProcessScriptReplacements( ScriptCode& code, bool refresh /* = fa
     }
 }
 
-void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<unsigned int, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld, bool& restart, ScriptEdit::External& external /* = ScriptEdit::ExternalDummy */ )
+void ReDefine::ProcessScriptEdit( const ScriptEditAction::Flag& initFlag, const std::map<uint32_t, std::vector<ReDefine::ScriptEdit>>& edits, ReDefine::ScriptCode& codeOld, bool& restart, ScriptEdit::External& external /* = ScriptEdit::ExternalDummy */ )
 {
     // editing must always works on backup to prevent massive screwup
     // original code will be updated only if there's no problems with *any* condition/result function
