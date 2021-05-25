@@ -1762,7 +1762,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
                     // split name from arguments
                     std::vector<std::string> vals;
-                    std::vector<std::string> arg = TextGetSplitted( action, ':' );
+                    std::vector<std::string> arg = TextGetSplitted( action, ':', 2 );
+
                     if( arg.empty() )
                     {
                         DEBUG( __FUNCTION__, "IGNORE [%s]", action.c_str() );

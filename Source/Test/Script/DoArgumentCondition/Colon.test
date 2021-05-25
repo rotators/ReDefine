@@ -1,0 +1,5 @@
+SCRIPT [Script:Test:Colon]
+SCRIPT Run      = RunAfter IfArgumentCondition:0,Test:Colon,External DoVariable:abc
+SCRIPT External = RunOnDemand IfFunction:a
+ORIGIN f(a(b)); f(b(a));
+EXPECT abc; f(b(a));

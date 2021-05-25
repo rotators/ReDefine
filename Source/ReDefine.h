@@ -449,7 +449,7 @@ public:
     std::string              TextGetLower( const std::string& text );
     std::string              TextGetPacked( const std::string& text );
     std::string              TextGetReplaced( const std::string& text, const std::string& from, const std::string& to );
-    std::vector<std::string> TextGetSplitted( const std::string& text, const char& separator );
+    std::vector<std::string> TextGetSplitted( const std::string& text, const char& separator, uint8_t limit = 0 );
 
     std::string TextGetTrimmed( const std::string& text );
 

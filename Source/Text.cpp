@@ -133,7 +133,7 @@ std::string ReDefine::TextGetReplaced( const std::string& text, const std::strin
     return result;
 }
 
-std::vector<std::string> ReDefine::TextGetSplitted( const std::string& text, const char& separator )
+std::vector<std::string> ReDefine::TextGetSplitted( const std::string& text, const char& separator, uint8_t limit /* = 0 */ )
 {
     std::vector<std::string> result;
 
@@ -146,7 +146,10 @@ std::vector<std::string> ReDefine::TextGetSplitted( const std::string& text, con
             if( separator != ' ' )
                 tmp = TextGetTrimmed( tmp );
 
-            result.push_back( tmp );
+            if( limit > 0 && result.size() >= limit )
+                result.back() += separator + tmp;
+            else
+                result.push_back( tmp );
         }
     }
 
