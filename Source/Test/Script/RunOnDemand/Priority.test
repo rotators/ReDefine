@@ -1,3 +1,5 @@
-SCRIPT Run = RunOnDemand:10 IfFunction DoVariable
+SCRIPT [Script:Test]
+SCRIPT Run      = RunAfter IfArgumentCondition:0,Test,External DoVariable
+SCRIPT External = RunOnDemand:10 IfFunction
 ORIGIN f()
 EXPECT f()

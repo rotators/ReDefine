@@ -86,7 +86,7 @@ endif()
 message( "" )
 message( STATUS "ReDefine run" )
 message( "" )
-file( WRITE "${PWD}/Run/ReDefine.ssl" "${TEST_ORIGIN}" )
+file( WRITE "${PWD}/Run/ReDefine.ssl" "${TEST_ORIGIN}\n" )
 
 execute_process(
 	COMMAND ${REDEFINE} --debug-changes 1

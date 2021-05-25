@@ -13,7 +13,7 @@ static std::regex IsInt( "^[\\-]?[0-9]+$" );
 static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
 static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|[Bb][Ww][a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
-static std::regex GetVariablesSimple( "^[\\t\\ ]*([A-Za-z0-9_]+)[\\t\\ ]*\\;[\\t\\ ]*$" );
+static std::regex GetVariablesSimple( "([A-Za-z0-9_]+)[\\t\\ ]*(?:;|$)" );
 
 static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
 static std::regex GetFunctionsQuotedText( "\".*?\"" );
@@ -273,10 +273,13 @@ uint32_t ReDefine::TextGetVariables( const std::string& text, std::vector<ReDefi
         variable.Full = it->str( 1 );
         variable.Name = it->str( 1 );
 
+        if( TextIsInt( variable.Name ) )
+            continue;
+
         result.push_back( variable );
         count++;
 
-        // DEBUG(__FUNCTION__, "VAR S!<%s>", variable.Name.c_str());
+        // DEBUG( __FUNCTION__, "VAR S!<%s>", variable.Name.c_str() );
     }
 
     return count;

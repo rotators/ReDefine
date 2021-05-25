@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfVariable DoFunction
+ORIGIN f; u; n; c;
+EXPECT f(); u(); n(); c();
