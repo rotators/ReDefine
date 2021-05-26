@@ -1,3 +1,3 @@
 SCRIPT Run = RunAfter IfVariable DoFunctionAround:f
-ORIGIN var;
-EXPECT f(var);
+ORIGIN var + 1;
+EXPECT f(var + 1);

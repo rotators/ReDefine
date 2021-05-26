@@ -124,7 +124,8 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
 
     // don't waste time on empty files
     // also, while( !std::ifstream::eof() ) goes wild on empty files
-    if( std::filesystem::file_size( file ) == 0 )
+    uintmax_t size = std::filesystem::file_size( file );
+    if( !size )
         return true;
 
     std::ifstream fstream;
@@ -133,21 +134,25 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
     bool result = fstream.is_open();
     if( result )
     {
-        // skip bom
-        char bom[3] = { 0, 0, 0 };
-        fstream.read( bom, sizeof(bom) );
-        if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
-            fstream.seekg( 0, std::ifstream::beg );
+        if( size >= 3 )
+        {
+            // skip bom
+            char bom[3] = { 0, 0, 0 };
+            fstream.read( bom, sizeof(bom) );
+            if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
+                fstream.seekg( 0, std::ifstream::beg );
+            else
+            {
+                size -= 3;
+                if( !size )
+                    return true;
+            }
+        }
 
         std::string line;
-        while( !fstream.eof() )
+        while( std::getline( fstream, line, '\n' ) )
         {
-            std::getline( fstream, line, '\n' );
-
-            line.erase( std::remove( line.begin(), line.end(), '\r' ), line.end() );
-            line.erase( std::remove( line.begin(), line.end(), '\n' ), line.end() );
-
-            lines.push_back( line );
+            lines.push_back( TextGetReplaced( line, "\r", "" ) );
         }
     }
     else

@@ -1,3 +1,0 @@
-SCRIPT Run = RunAfter IfVariable DoFunction
-ORIGIN f
-EXPECT f()

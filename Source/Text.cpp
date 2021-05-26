@@ -13,7 +13,7 @@ static std::regex IsInt( "^[\\-]?[0-9]+$" );
 static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
 static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|[Bb][Ww][a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
-static std::regex GetVariablesSimple( "([A-Za-z0-9_]+)[\\t\\ ]*(?:;|$)" );
+static std::regex GetVariablesSimple( "([A-Za-z0-9_]+)[\\t\\ ]*;" );
 
 static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
 static std::regex GetFunctionsQuotedText( "\".*?\"" );
