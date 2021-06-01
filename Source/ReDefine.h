@@ -98,7 +98,7 @@ public:
 
     bool ReadFile( const std::string& filename, std::vector<std::string>& lines );
     bool ReadFile( const std::string& filename, std::vector<char>& data );
-    bool ReadConfig( const std::string& defines, const std::string& variable_prefix, const std::string& function_prefix, const std::string& raw, const std::string& script );
+    bool ReadConfig( const std::string& defines, const std::string& variablePrefix, const std::string& functionPrefix, const std::string& raw, const std::string& script );
 
     void ProcessHeaders( const std::string& path );
     void ProcessScripts( const std::string& path, const bool readOnly = false );

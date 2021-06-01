@@ -8,7 +8,8 @@
 
 static void Print( ReDefine* redefine, const std::string& log, const char* prefix, const char* caller, const char* format, va_list& args, bool lineInfo )
 {
-    std::string full;
+    static constexpr uint32_t textSize = 4096;
+    std::string               full;
 
     if( prefix )
     {
@@ -25,7 +26,7 @@ static void Print( ReDefine* redefine, const std::string& log, const char* prefi
     }
 
     // prepare text
-    char text[4096];
+    char text[textSize];
     std::memset( text, 0, sizeof(text) );
     std::vsnprintf( text, sizeof(text), format, args );
 

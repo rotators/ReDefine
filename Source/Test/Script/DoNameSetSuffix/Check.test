@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoNameSetSuffix:_unction
+ORIGIN f();
+EXPECT f_unction();

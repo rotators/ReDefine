@@ -15,8 +15,7 @@ ReDefine::ScriptEdit::External ReDefine::ScriptEdit::ExternalDummy;
 //
 
 ReDefine::ScriptEdit::ScriptEdit() :
-    Debug( false ),
-    Name( "" )
+    Debug( false )
 {}
 
 //
@@ -24,7 +23,6 @@ ReDefine::ScriptEdit::ScriptEdit() :
 static std::map<std::string, std::string> DummyCache;
 
 ReDefine::ScriptEdit::External::External() :
-    Name( "" ),
     RunConditions( false ),
     RunResults( false ),
     ReturnConditions( ScriptEditReturn::Invalid ),
@@ -317,13 +315,7 @@ ReDefine::ScriptEditReturn ReDefine::ScriptEditAction::CallEditDo( ScriptCode& c
 ReDefine::ScriptCode::ScriptCode( const ScriptCode::Flag& flags /* = ScriptCode::Flag::NONE */ ) :
     Parent( nullptr ),
     File( nullptr ),
-    Flags( flags ),
-    Full( "" ),
-    Name( "" ),
-    ReturnType( "" ),
-//  Arguments(),
-    Operator( "" ),
-    OperatorArgument( "" )
+    Flags( flags )
 {}
 
 typedef std::underlying_type<ReDefine::ScriptCode::Flag>::type ScriptCodeFlagType;
@@ -372,7 +364,7 @@ std::string ReDefine::ScriptCode::GetFullString() const
             {
                 std::vector<std::string> args, raw;
 
-                for( auto& arg : Arguments )
+                for( const auto& arg : Arguments )
                 {
                     args.push_back( arg.Arg );
 
@@ -565,7 +557,7 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
     if( !action.IsValues( caller, 3 ) )
         return action.Invalid();
 
-    uint32_t idx = (uint32_t)(-1);
+    uint32_t idx = static_cast<uint32_t>(-1);
 
     if( !action.GetINDEX( caller, 0, code, idx ) )
         return action.Invalid();
@@ -576,11 +568,11 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
         return action.Invalid();
     }
 
+    std::vector<ReDefine::ScriptCode> extracted;
     ReDefine::ScriptCode              codeExtracted = code;
 
-    std::vector<ReDefine::ScriptCode> extracted;
-    action.Root->TextGetFunctions( code.Arguments[idx].Raw, extracted );
-    action.Root->TextGetVariables( code.Arguments[idx].Raw, extracted );
+    action.Root->TextGetFunctions( code.Arguments[idx].Arg, extracted );
+    action.Root->TextGetVariables( code.Arguments[idx].Arg, extracted );
 
     // results returning INVALID after this point isn't very elegant solution,
     // but it's better than editing wrong/unexpected ScriptCode;
@@ -589,9 +581,17 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
 
     if( extracted.empty() )
     {
-        // TODO retry with ^[A-Za-z0-9_]$
-        // action.Root->DEBUG( caller, "Extracting argument<%u> failed", idx );
-        return condition ? action.Failure() : action.Invalid();
+        static const std::regex var( "^[A-Za-z0-9_]+$" );
+        if( std::regex_match( code.Arguments[idx].Arg, var ) )
+        {
+            codeExtracted = ReDefine::ScriptCode( ReDefine::ScriptCode::Flag::VARIABLE );
+            codeExtracted.Full = codeExtracted.Name = code.Arguments[idx].Arg;
+        }
+        else
+        {
+            action.Root->DEBUG( caller, "Extracting argument<%u> failed <%s>", idx, code.Arguments[idx].Arg.c_str() );
+            return condition ? action.Failure() : action.Invalid();
+        }
     }
 
     for( ReDefine::ScriptCode& codeFind : extracted )
@@ -1541,7 +1541,7 @@ static ReDefine::ScriptEditReturn DoNameCount( ReDefine::ScriptEditAction& actio
 }
 
 // ? DoNameSet:STRING
-// ! Changes script function/variable name.
+// ! Changes script function/variable name using provided string
 static ReDefine::ScriptEditReturn DoNameSet( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1551,6 +1551,57 @@ static ReDefine::ScriptEditReturn DoNameSet( ReDefine::ScriptEditAction& action,
         return action.Invalid();
 
     code.Name = action.Values[0];
+    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
+
+    return action.Success();
+}
+
+// ? DoNameSetCached:CACHE
+// ! Changes script function/variable name using cached string
+static ReDefine::ScriptEditReturn DoNameSetCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    if( !action.GetCACHE( __FUNCTION__, 0 ) )
+        return action.Invalid();
+
+    code.Name = action.Cache[action.Values[0]];
+    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
+
+    return action.Success();
+}
+
+// ? DoNameSetPrefix:STRING
+// ! Changes script function/variable name using provided string
+static ReDefine::ScriptEditReturn DoNameSetPrefix( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    code.Name = action.Values[0] + code.Name;
+    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
+
+    return action.Success();
+}
+
+// ? DoNameSetSuffix:STRING
+// ! Changes script function/variable name using provided string
+static ReDefine::ScriptEditReturn DoNameSetSuffix( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    code.Name = code.Name + action.Values[0];
     code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
 
     return action.Success();
@@ -1585,6 +1636,25 @@ static ReDefine::ScriptEditReturn DoOperatorSet( ReDefine::ScriptEditAction& act
     if( action.IsValues( nullptr, 2 ) )
         code.OperatorArgument = action.Values[1];
 
+    return action.Success();
+}
+
+// ? DoOperatorValueCache:CACHE
+static ReDefine::ScriptEditReturn DoOperatorValueCache( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
+{
+    if( !code.IsVariableOrFunction( __FUNCTION__ ) )
+        return action.Invalid();
+
+    if( code.Operator.empty() || code.OperatorArgument.empty() )
+    {
+        action.Root->WARNING( __FUNCTION__, "script code<%s> does not use operator", code.GetFullString().c_str() );
+        return action.Invalid();
+    }
+
+    if( !action.IsValues( __FUNCTION__, 1 ) )
+        return action.Invalid();
+
+    action.Cache[action.Values[0]] = code.OperatorArgument;
     return action.Success();
 }
 
@@ -1693,8 +1763,12 @@ void ReDefine::InitScript()
     EditDo["DoLogCurrentLine"] = &DoLogCurrentLine;
     EditDo["DoNameCount"] = &DoNameCount;
     EditDo["DoNameSet"] = &DoNameSet;
+    EditDo["DoNameSetCached"] = &DoNameSetCached;
+    EditDo["DoNameSetPrefix"] = &DoNameSetPrefix;
+    EditDo["DoNameSetSuffix"] = &DoNameSetSuffix;
     EditDo["DoOperatorClear"] = &DoOperatorClear;
     EditDo["DoOperatorSet"] = &DoOperatorSet;
+    EditDo["DoOperatorValueCache"] = &DoOperatorValueCache;
     EditDo["DoRestart"] = &DoRestart;
     EditDo["DoReturnSetType"] = &DoReturnSetType;
     EditDo["DoVariable"] = &DoVariable;
@@ -1722,7 +1796,8 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 {
     FinishScript( false );
 
-    std::vector<std::string> sections;
+    static constexpr uint32_t defaultPriority = 100;
+    std::vector<std::string>  sections;
     if( !Config->GetSections( sections ) )
         return false;
 
@@ -1753,7 +1828,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
                 edit.Name = category + name;
 
                 bool     ignore = false, before = false, after = false, demand = false;
-                uint32_t priority = 100;
+                uint32_t priority = defaultPriority;
 
                 for( const auto& action : Config->GetStrVec( section, name ) )
                 {
@@ -1836,7 +1911,7 @@ bool ReDefine::ReadConfigScript( const std::string& sectionPrefix )
 
                     if( (arg[0] == "RunBefore" || arg[0] == "RunAfter" || arg[0] == "RunOnDemand") && !vals.empty() && !vals[0].empty() )
                     {
-                        int tmpriority;
+                        int tmpriority = priority;
                         if( arg[0] == "RunOnDemand" )
                         {
                             WARNING( __FUNCTION__, "script edit<%s> ignored : edits running on demand cannot set priority", name.c_str() );
@@ -2066,7 +2141,7 @@ public:
             content += line + newline;
             continue;
         }
-        else if( line.find( "//ReDefine::IgnoreLine//" ) != std::string::npos || line.find( "/*ReDefine::IgnoreLine*/" ) != std::string::npos )
+        else if( line.find( "//ReDefine::IgnoreLine//" ) != std::string::npos || line.find( "/*ReDefine::IgnoreLine*/" ) != std::string::npos ) // TODO C++23 https://en.cppreference.com/w/cpp/string/basic_string/contains
         {
             // DEBUG( nullptr, "SKIP" );
             content += line + newline;

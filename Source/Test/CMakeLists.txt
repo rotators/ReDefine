@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.14 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.19 FATAL_ERROR )
 
 file( GLOB_RECURSE found_tests LIST_DIRECTORIES false RELATIVE "${CMAKE_CURRENT_LIST_DIR}" CONFIGURE_DEPENDS "*.test" )
 list( SORT found_tests )
@@ -26,4 +26,11 @@ add_custom_target( ReDefine.Test
     DEPENDS ReDefine ${found_tests}
     COMMAND ${CMAKE_CTEST_COMMAND} --build-config ${TEST_CONFIG} --output-on-failure
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+
+    SOURCES Run.cmake ${found_tests}
 )
+
+source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${found_tests} )
+
+source_group( "CMake"     REGULAR_EXPRESSION "[Cc][Mm][Aa][Kk][Ee]" )
+source_group( ""          FILES              "Run.cmake" )

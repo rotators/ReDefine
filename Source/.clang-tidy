@@ -1,1 +1,28 @@
-Checks: '*,-cert-dcl50-cpp,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-type-vararg,-fuchsia-default-arguments,-google-readability-braces-around-statements,-google-readability-todo,-google-runtime-int,-google-runtime-references,-hicpp-braces-around-statements,-hicpp-no-array-decay,-hicpp-vararg,-readability-braces-around-statements,-readability-else-after-return,-readability-implicit-bool-cast,-readability-implicit-bool-conversion,-readability-isolate-declaration'
+Checks: >
+        *,
+
+        -fuchsia-default-arguments-calls,
+        -fuchsia-statically-constructed-objects,
+
+        -google-readability-braces-around-statements,
+        -google-readability-todo,
+
+        -hicpp-braces-around-statements,
+
+        -readability-braces-around-statements,
+        -readability-else-after-return,
+        -readability-function-cognitive-complexity,
+        -readability-implicit-bool-conversion,
+        -readability-isolate-declaration,
+
+        -llvm-else-after-return,
+        -llvmlibc-*,
+
+        -modernize-use-trailing-return-type,
+
+        -X-FORMAT-X-,
+        -cert-dcl50-cpp,
+        -cppcoreguidelines-pro-type-vararg,
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+        -hicpp-vararg,
+        -hicpp-no-array-decay

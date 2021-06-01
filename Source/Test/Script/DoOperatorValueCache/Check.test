@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction DoOperatorValueCache:op DoOperatorClear DoArgumentSetCached:0,op
+ORIGIN f(x) == y
+EXPECT f(y)

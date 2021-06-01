@@ -6,17 +6,20 @@
 
 #include "ReDefine.h"
 
-static std::regex IsBlank( "^[\\t\\ ]*$" );
-static std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
-static std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
-static std::regex IsInt( "^[\\-]?[0-9]+$" );
-static std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
+namespace
+{
+    static const std::regex IsBlank( "^[\\t\\ ]*$" );
+    static const std::regex IsComment( "^[\\t\\ ]*\\/\\/" );
+    static const std::regex IsDefine( "^[\\t\\ ]*\\#define[\\t\\ ]+" );
+    static const std::regex IsInt( "^[\\-]?[0-9]+$" );
+    static const std::regex IsConflict( "^[\\<]+ (HEAD|\\.mine).*$" );
 
-static std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|[Bb][Ww][a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
-static std::regex GetVariablesSimple( "([A-Za-z0-9_]+)[\\t\\ ]*;" );
+    static const std::regex GetVariables( "([A-Za-z0-9_]+)[\\t\\ ]*([\\:\\=\\!\\<\\>\\+]+|[Bb][Ww][a-z]+)[\\t\\ ]*([\\-]?[A-Za-z0-9\\_]+)" );
+    static const std::regex GetVariablesSimple( "([A-Za-z0-9_]+)[\\t\\ ]*;" );
 
-static std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
-static std::regex GetFunctionsQuotedText( "\".*?\"" );
+    static const std::regex GetFunctions( "([A-Za-z0-9_]+)\\(" );
+    static const std::regex GetFunctionsQuotedText( "\".*?\"" );
+}
 
 bool ReDefine::TextIsBlank( const std::string& text )
 {
@@ -91,7 +94,6 @@ std::string ReDefine::TextGetJoined( const std::vector<std::string>& text, const
             return oss.str();
     }
 }
-
 
 std::string ReDefine::TextGetLower( const std::string& text )
 {
@@ -409,7 +411,7 @@ uint32_t ReDefine::TextGetFunctions( const std::string& text, std::vector<ReDefi
                     // script edits checking OperatorArgument should be fine too, as they're not allowed to use spaces :>
                     if( --balance <= 0 )
                     {
-                        full = text.substr( funcStart, funcLen + ( (int64_t)balance + 1 ) );
+                        full = text.substr( funcStart, funcLen + (static_cast<int64_t>(balance) + 1) );
                         if( balance == 0 )
                             opArg += ch;
                         break;

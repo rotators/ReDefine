@@ -89,7 +89,7 @@ message( "" )
 file( WRITE "${PWD}/Run/ReDefine.ssl" "${TEST_ORIGIN}" )
 
 execute_process(
-	COMMAND ${REDEFINE} --debug-changes 1
+	COMMAND ${REDEFINE} --debug-changes 2
 	WORKING_DIRECTORY "${PWD}/Run"
 	RESULT_VARIABLE exitcode
 )

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 
 #include "Ini.h"
 
@@ -9,8 +10,6 @@
 //
 
 ReDefine::SStatus::SCurrent::SCurrent() :
-    File( "" ),
-    Line( "" ),
     LineNumber( 0 )
 {}
 
@@ -123,9 +122,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
     }
 
     // don't waste time on empty files
-    // also, while( !std::ifstream::eof() ) goes wild on empty files
-    uintmax_t size = std::filesystem::file_size( file );
-    if( !size )
+    if( std::filesystem::is_empty( file ) )
         return true;
 
     std::ifstream fstream;
@@ -134,12 +131,18 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<std::string>& 
     bool result = fstream.is_open();
     if( result )
     {
+        // https://stackoverflow.com/a/22986486/11998612
+        fstream.ignore( std::numeric_limits<std::streamsize>::max() );
+        std::streamsize size = fstream.gcount();
+        fstream.clear();
+        fstream.seekg( 0, std::ifstream::beg );
+
         if( size >= 3 )
         {
             // skip bom
             char bom[3] = { 0, 0, 0 };
             fstream.read( bom, sizeof(bom) );
-            if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
+            if( bom[0] != static_cast<char>(0xEF) || bom[1] != static_cast<char>(0xBB) || bom[2] != static_cast<char>(0xBF) )
                 fstream.seekg( 0, std::ifstream::beg );
             else
             {
@@ -173,8 +176,7 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
     }
 
     // don't waste time on empty files
-    std::uintmax_t size = std::filesystem::file_size( file );
-    if( size == 0 )
+    if( std::filesystem::is_empty( file ) )
         return true;
 
     std::ifstream fstream;
@@ -183,13 +185,26 @@ bool ReDefine::ReadFile( const std::string& filename, std::vector<char>& data )
     bool result = fstream.is_open();
     if( result )
     {
-        // skip bom
-        char bom[3] = { 0, 0, 0 };
-        fstream.read( bom, sizeof(bom) );
-        if( bom[0] != (char)0xEF || bom[1] != (char)0xBB || bom[2] != (char)0xBF )
-            fstream.seekg( 0, std::ifstream::beg );
-        else
-            size -= 3;
+        // https://stackoverflow.com/a/22986486/11998612
+        fstream.ignore( std::numeric_limits<std::streamsize>::max() );
+        std::streamsize size = fstream.gcount();
+        fstream.clear();
+        fstream.seekg( 0, std::ios_base::beg );
+
+        if( size >= 3 )
+        {
+            // skip bom
+            char bom[3] = { 0, 0, 0 };
+            fstream.read( bom, sizeof(bom) );
+            if( bom[0] != static_cast<char>(0xEF) || bom[1] != static_cast<char>(0xBB) || bom[2] != static_cast<char>(0xBF) )
+                fstream.seekg( 0, std::ifstream::beg );
+            else
+            {
+                size -= 3;
+                if( !size )
+                    return true;
+            }
+        }
 
         data.resize( size );
         fstream.read( &data[0], size );
@@ -254,7 +269,7 @@ void ReDefine::ProcessHeaders( const std::string& path )
     for( const auto& itProg : programDefines )
     {
         std::string            type = itProg.first, group;
-        std::string::size_type pos = type.find_first_of( ":" );
+        std::string::size_type pos = type.find_first_of( ':' );
         if( pos != std::string::npos )
         {
             group = type.substr( pos + 1 );

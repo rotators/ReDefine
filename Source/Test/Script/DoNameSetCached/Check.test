@@ -1,0 +1,3 @@
+SCRIPT Run = RunAfter IfFunction:f DoArgumentCache:0,arg DoNameSetCached:arg DoArgumentSet:0,f
+ORIGIN f(x);
+EXPECT x(f);

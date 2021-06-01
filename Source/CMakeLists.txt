@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.7.2 FATAL_ERROR ) # cannot go higher due to nuremberg setup
+cmake_minimum_required( VERSION 3.19 FATAL_ERROR )
 
 set( CMAKE_CONFIGURATION_TYPES    "Release" )
 set( CMAKE_SKIP_INSTALL_RULES     TRUE )
@@ -116,4 +116,3 @@ set_property( GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake" )
 
 source_group( " "         REGULAR_EXPRESSION "\.([CcHh]|[CcHh][Pp][Pp])$" )
 source_group( "CMake"     REGULAR_EXPRESSION "[Cc][Mm][Aa][Kk][Ee]" )
-source_group( "FOClassic" REGULAR_EXPRESSION "FOClassic" )
