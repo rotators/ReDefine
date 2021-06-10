@@ -74,6 +74,8 @@ static void Print( ReDefine* redefine, const std::string& log, const char* prefi
 
             flog.close();
         }
+        // else
+        //     std::printf( "Cannot write: %s\n", log.c_str() );
     }
 }
 

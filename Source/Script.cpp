@@ -589,7 +589,9 @@ static ReDefine::ScriptEditReturn RunExternal( const char* caller, ReDefine::Scr
         }
         else
         {
-            action.Root->DEBUG( caller, "Extracting argument<%u> failed <%s>", idx, code.Arguments[idx].Arg.c_str() );
+            if( !code.Arguments[idx].Arg.starts_with( "\"" ) )
+                action.Root->DEBUG( caller, "Extracting argument<%u> failed <%s>", idx, code.Arguments[idx].Arg.c_str() );
+
             return condition ? action.Failure() : action.Invalid();
         }
     }
@@ -1558,6 +1560,7 @@ static ReDefine::ScriptEditReturn DoNameSet( ReDefine::ScriptEditAction& action,
 
 // ? DoNameSetCached:CACHE
 // ! Changes script function/variable name using cached string
+// > DoNameSet
 static ReDefine::ScriptEditReturn DoNameSetCached( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1569,14 +1572,12 @@ static ReDefine::ScriptEditReturn DoNameSetCached( ReDefine::ScriptEditAction& a
     if( !action.GetCACHE( __FUNCTION__, 0 ) )
         return action.Invalid();
 
-    code.Name = action.Cache[action.Values[0]];
-    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
-
-    return action.Success();
+    return action.CallEditDo( code, "DoNameSet", { action.Cache[action.Values[0]] } );
 }
 
 // ? DoNameSetPrefix:STRING
 // ! Changes script function/variable name using provided string
+// > DoNameSet
 static ReDefine::ScriptEditReturn DoNameSetPrefix( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1585,14 +1586,12 @@ static ReDefine::ScriptEditReturn DoNameSetPrefix( ReDefine::ScriptEditAction& a
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    code.Name = action.Values[0] + code.Name;
-    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
-
-    return action.Success();
+    return action.CallEditDo( code, "DoNameSet", { action.Values[0] + code.Name } );
 }
 
 // ? DoNameSetSuffix:STRING
 // ! Changes script function/variable name using provided string
+// > DoNameSet
 static ReDefine::ScriptEditReturn DoNameSetSuffix( ReDefine::ScriptEditAction& action, ReDefine::ScriptCode& code )
 {
     if( !code.IsVariableOrFunction( __FUNCTION__ ) )
@@ -1601,10 +1600,7 @@ static ReDefine::ScriptEditReturn DoNameSetSuffix( ReDefine::ScriptEditAction& a
     if( !action.IsValues( __FUNCTION__, 1 ) )
         return action.Invalid();
 
-    code.Name = code.Name + action.Values[0];
-    code.SetFlag( ReDefine::ScriptCode::Flag::REFRESH );
-
-    return action.Success();
+    return action.CallEditDo( code, "DoNameSet", { code.Name + action.Values[0] } );
 }
 
 // ? DoOperatorClear
