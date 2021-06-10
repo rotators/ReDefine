@@ -1,0 +1,7 @@
+CONFIG [Defines:TEST]
+CONFIG 1207 = c
+CONFIG [Function]
+CONFIG inner = ? ? TEST
+SCRIPT Run = RunAfter IfFunction:outer DoNameSet:f DoArgumentsResize:3
+ORIGIN outer(1, 2, inner(a, b, 1207) - 3, 3)
+EXPECT f(1, 2, inner(a, b, c) - 3)
