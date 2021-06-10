@@ -427,6 +427,10 @@ uint32_t ReDefine::TextGetFunctions( const std::string& text, std::vector<ReDefi
                         break;
                     }
                 }
+                // make sure inner function does not include argument of outer function
+                // prevents extracting function as 'inner(some, arg) -3, 1' from 'outer(3, 2, inner(some, arg) - 3, 1)'
+                else if( balance == 0 && ch == ',' )
+                    break;
 
                 full = text.substr( funcStart, funcLen + 1 );
                 opArg += ch;
