@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <sstream>
+#include <iterator>
 
 #include "ReDefine.h"
 
